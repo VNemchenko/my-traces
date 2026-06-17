@@ -1,7 +1,6 @@
-const TRACES_CONFIG = window.TRACES_CONFIG || {};
-const API_BASE_URL = (TRACES_CONFIG.API_BASE_URL || "https://mind.brownyx.com").replace(/\/$/, "");
-const POLL_INTERVAL_MS = Number(TRACES_CONFIG.POLL_INTERVAL_MS || 30000);
-const FALLBACK_SNAPSHOT_URL = TRACES_CONFIG.FALLBACK_SNAPSHOT_URL || "/assets/fallback-snapshot.json";
+const API_BASE_URL = "https://mind.brownyx.com";
+const POLL_INTERVAL_MS = 30000;
+const FALLBACK_SNAPSHOT_URL = "/assets/fallback-snapshot.json";
 const CACHE_KEY = "traces.snapshot.v1";
 
 const TRACE_TYPE_LABELS = {

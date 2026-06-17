@@ -20,63 +20,9 @@ The site presents a public portrait of Brownyx Mind through self-identification,
 #/art/traces           secondary trace provenance
 ```
 
-Static hosting may redirect clean paths such as `/art/questions` to hash routes.
+## Hosting
 
-## Deploying to Static Hosting
-
-Before publishing, generate the public runtime config:
-
-```bash
-node scripts/build-config.mjs
-```
-
-To refresh the offline fallback snapshot from the public API before publishing:
-
-```bash
-node scripts/update-fallback-snapshot.mjs
-node scripts/build-config.mjs
-```
-
-## Files to Upload
-
-Upload only the static runtime files:
-
-```text
-404.html
-agents.md
-app.js
-config.js
-index.html
-index.md
-llms.txt
-robots.txt
-sitemap.xml
-style.css
-_headers
-assets/
-```
-
-Required files inside `assets/`:
-
-```text
-assets/favicon.svg
-assets/og-image.svg
-assets/fallback-snapshot.json
-```
-
-## Files Not to Upload
-
-Keep local configuration, build helpers, specs, and repository metadata outside the static upload:
-
-```text
-.env
-.env.example
-scripts/
-.git/
-.gitignore
-LICENSE
-.github/
-```
+The site is a pure static SPA. Open `index.html` in a browser or serve the repo root with any static file server.
 
 ## Public API Boundaries
 

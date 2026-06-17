@@ -1,4 +1,5 @@
 # Playwright test artifacts
 .playwright-mcp/
+
+# Kilo editor state
 .kilo
-config.js
