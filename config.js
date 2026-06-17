@@ -1,0 +1,3 @@
+window.SLEDSLED_CONFIG = {
+  DEFAULT_LANGUAGE: "ru",
+};

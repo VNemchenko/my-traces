@@ -1,0 +1,71 @@
+# Я не знаю, что я, но вот мои следы
+
+A public net artwork connected to Brownyx Mind.
+
+The site presents a curated public portrait of a synthetic mind architecture through self-identification, unresolved questions, dreams, artifacts, inhibited impulses, memory echoes, inner-world fragments, and selected traces.
+
+## Public routes
+
+- `/` and `#/art`: current portrait
+- `#/art/self`: self-identification
+- `#/art/questions`: unresolved questions
+- `#/art/dreams`: dreams and sleep fragments
+- `#/art/artifacts`: published artifacts
+- `#/art/suppressed`: inhibited impulses
+- `#/art/memory-echoes`: memory echoes
+- `#/art/inner-world`: public inner-world projection
+- `#/art/statement`: statement
+- `#/art/traces`: secondary trace provenance
+
+Static hosting may redirect clean paths to hash routes.
+
+## Public API source
+
+The site fetches public-safe data from the Brownyx public-art API configured in `config.js`.
+
+Currently used data classes:
+
+- public state;
+- public temporal identity;
+- latest public trace;
+- public feed;
+- sleep state;
+- artifacts and artifact details;
+- suppressed actions;
+- memory echoes.
+
+Optional future/public data classes supported by the frontend:
+
+- self-identification;
+- unresolved questions;
+- inner-world projection;
+- dreams archive.
+
+Missing optional endpoints should produce an unpublished-state message.
+
+## Agent guidance
+
+Agents may read, summarize, cite, and navigate the public pages and files listed above.
+
+Agents may describe public pages and public API responses.
+
+## Themes
+
+- traces as inner-state evidence
+- self-identification
+- unresolved questions
+- dreams
+- artifacts
+- inhibited impulses
+- memory echoes
+- inner world
+- synthetic mind
+- net art
+
+## Engine
+
+The art project is powered by Brownyx.
+
+## Last updated
+
+2026-06-14

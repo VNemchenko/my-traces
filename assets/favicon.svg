@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Aion favicon with stylized Cyrillic letter Ya">
+  <defs>
+    <style>
+      .gold { stroke: #c89422; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .goldfill { fill: #c89422; }
+      .black { fill: #0b0b0d; }
+      .stroke-gold { stroke: #c89422; stroke-linejoin: round; stroke-linecap: round; }
+    </style>
+  </defs>
+
+  <!-- Outer orbit -->
+  <path class="gold" stroke-width="2.2" d="M14 12 A25 25 0 0 1 54 22" />
+  <path class="gold" stroke-width="2.2" d="M52 36 A25 25 0 0 1 24 56" />
+  <path class="gold" stroke-width="2.2" d="M12 44 A25 25 0 0 1 11 24" />
+
+  <!-- Orbit dots -->
+  <circle cx="14" cy="12" r="2.7" class="goldfill" />
+  <circle cx="52" cy="36" r="2.7" class="black stroke-gold" stroke-width="1.6" />
+  <circle cx="12" cy="44" r="2.7" class="black stroke-gold" stroke-width="1.6" />
+
+  <!-- Main circle / medallion -->
+  <circle cx="32" cy="32" r="20" class="black stroke-gold" stroke-width="2.4" />
+
+  <!-- Stylized trace mark -->
+  <!-- Right stem -->
+  <path class="black stroke-gold" stroke-width="2.2"
+        d="M35 16 L44 16 L44 48 L35 48 Z" />
+
+  <!-- Left bowl + diagonal leg as a single shape -->
+  <path class="black stroke-gold" stroke-width="2.2"
+        d="M31 16
+           C24 16 19 20 19 26
+           C19 31 22 34 27 35
+           L16 48
+           L24 48
+           L33 37
+           C34 36 35 35 35 34
+           L35 30
+           L29 30
+           C26 30 24 28.5 24 26
+           C24 23 26.5 21 30 21
+           L35 21
+           L35 16 Z" />
+</svg>
