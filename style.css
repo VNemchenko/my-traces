@@ -214,7 +214,9 @@ h1, h2, h3 {
 .question-card,
 .dream-card,
 .artifact-card,
-.world-place {
+.world-place,
+.hypothesis-card,
+.contradiction-card {
   background: var(--paper);
   border: 1px solid var(--soft-line);
   border-radius: 18px;
@@ -238,7 +240,9 @@ h1, h2, h3 {
 .art-card .question-card,
 .art-card .dream-card,
 .art-card .artifact-card,
-.art-card .world-place {
+.art-card .world-place,
+.art-card .hypothesis-card,
+.art-card .contradiction-card {
   padding: 0;
   background: transparent;
   border: 0;
@@ -256,7 +260,9 @@ h1, h2, h3 {
 .trace-card h3,
 .question-card h3,
 .artifact-card h3,
-.world-place h3 {
+.world-place h3,
+.hypothesis-card h3,
+.contradiction-card h3 {
   font-size: clamp(1.05rem, 1.35vw, 1.45rem);
   line-height: 1.15;
   margin-bottom: 10px;
@@ -267,6 +273,8 @@ h1, h2, h3 {
 .dream-card p,
 .artifact-card p,
 .world-place p,
+.hypothesis-card p,
+.contradiction-card p,
 .art-card p {
   margin: 0 0 10px;
   color: var(--muted);
@@ -274,6 +282,8 @@ h1, h2, h3 {
 
 .trace-card:not(.compact) > p:first-of-type,
 .question-card > p:first-child,
+.hypothesis-card > p:first-child,
+.contradiction-card > p:first-child,
 .dream-text {
   font-family: Georgia, "Times New Roman", serif;
   color: var(--ink);
@@ -538,5 +548,5 @@ h1, h2, h3 {
   .site-tools { justify-content: flex-start; }
   .hero-block h1 { font-size: clamp(2.6rem, 16vw, 5rem); }
   .page-heading h1 { font-size: clamp(2.2rem, 13vw, 4rem); }
-  .art-card, .trace-card, .question-card, .dream-card, .artifact-card, .world-place { padding: 17px; border-radius: 14px; }
+  .art-card, .trace-card, .question-card, .dream-card, .artifact-card, .world-place, .hypothesis-card, .contradiction-card { padding: 17px; border-radius: 14px; }
 }

@@ -32,6 +32,8 @@ const I18N = {
   navMemory: "memory",
   navWorld: "inner world",
   navCalendar: "calendar",
+  navHypotheses: "hypotheses",
+  navContradictions: "contradictions",
   navStatement: "statement",
   connection: "connection",
   online: "live",
@@ -68,6 +70,8 @@ const I18N = {
   noSuppressed: "No inhibited impulses are public now. Sometimes restraint itself becomes the trace.",
   noMemory: "No memory echoes are selected for public display.",
   noWorld: "The public inner-world map is not published yet.",
+  noHypotheses: "No public hypotheses are available yet. Hypotheses appear when the mind forms tentative explanations.",
+  noContradictions: "No public contradictions are available yet. Contradictions surface when the mind detects internal conflicts.",
   noCalendar: "Calendar data is not available yet.",
   readMore: "open",
   reason: "reason",
@@ -100,6 +104,12 @@ const I18N = {
   calendarArtifacts: "artifacts",
   calendarSleep: "sleep",
   calendarNoData: "No activity data available for this period.",
+  confidence: "confidence",
+  novelty: "novelty",
+  severity: "severity",
+  attempts: "attempts",
+  openHypotheses: "open hypotheses",
+  openContradictions: "open contradictions",
   poweredBy: "Powered by",
   brownyxMind: "Brownyx Mind",
 };
@@ -216,6 +226,8 @@ function navItems() {
     ["/art/suppressed", t("navSuppressed")],
     ["/art/memory-echoes", t("navMemory")],
     ["/art/inner-world", t("navWorld")],
+    ["/art/hypotheses", t("navHypotheses")],
+    ["/art/contradictions", t("navContradictions")],
     ["/art/calendar", t("navCalendar")],
     ["/art/statement", t("navStatement")],
   ];
@@ -261,13 +273,15 @@ async function loadSnapshot() {
     readJsonResult("/api/public-art/questions?limit=30", { items: [] }),
     readJsonResult("/api/public-art/inner-world", null),
     readJsonResult("/api/public-art/dreams?limit=30", { items: [] }),
+    readJsonResult("/api/public-art/hypotheses?limit=30", { items: [] }),
+    readJsonResult("/api/public-art/contradictions?limit=30", { items: [] }),
     readJsonResult("/api/public-art/health", null),
     readJsonResult(`/api/public-art/traces/calendar?year=${year}&month=${month}`, null),
   ]);
-  const [state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self, questions, innerWorld, dreams, health, calendar] = results.map((r) => r.data);
+  const [state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self, questions, innerWorld, dreams, hypotheses, contradictions, health, calendar] = results.map((r) => r.data);
   const coreAvailable = results.slice(0, 4).some((r) => r.ok);
   if (!coreAvailable) throw new Error("Public art API unavailable");
-  const snapshot = { state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self, questions, innerWorld, dreams, health, calendar, received_at: new Date().toISOString(), source: "public_api" };
+  const snapshot = { state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self, questions, innerWorld, dreams, hypotheses, contradictions, health, calendar, received_at: new Date().toISOString(), source: "public_api" };
   localStorage.setItem(CACHE_KEY, JSON.stringify(snapshot));
   return snapshot;
 }
@@ -381,6 +395,8 @@ function renderHome(snapshot, degraded) {
   const suppressed = normalizeItems(snapshot?.suppressed);
   const echoes = normalizeItems(snapshot?.echoes);
   const world = snapshot?.innerWorld;
+  const hypotheses = normalizeItems(snapshot?.hypotheses).slice(0, 3);
+  const contradictions = normalizeItems(snapshot?.contradictions).slice(0, 3);
   const focusHtml = latest ? traceCard(latest) : empty(t("noTrace"));
   const selfHtml = self?.identity_statement ? `<p class="lead-text">${htmlLines(self.identity_statement)}</p>${self.delta_summary ? `<p class="secondary">${htmlLines(self.delta_summary)}</p>` : ""}` : empty(t("noSelf"));
   const qHtml = questions.length ? questions.map(renderQuestionCard).join("") : empty(t("noQuestions"));
@@ -389,6 +405,8 @@ function renderHome(snapshot, degraded) {
   const suppressedHtml = suppressed.length ? traceCard(suppressed[0]) : empty(t("noSuppressed"));
   const worldHtml = renderWorldTeaser(world);
   const echoesHtml = echoes.length ? echoes.slice(0, 2).map((x) => traceCard(x, { compact: true })).join("") : empty(t("noMemory"));
+  const hypHtml = hypotheses.length ? hypotheses.map(renderHypothesisCard).join("") : empty(t("noHypotheses"));
+  const conHtml = contradictions.length ? contradictions.map(renderContradictionCard).join("") : empty(t("noContradictions"));
 
   return renderShell(`
     <section class="hero-block">
@@ -406,6 +424,8 @@ function renderHome(snapshot, degraded) {
       ${section(t("lastArtifact"), artifactHtml)}
       ${section(t("stoppedImpulse"), suppressedHtml)}
       ${section(t("innerWorld"), worldHtml)}
+      ${section(t("openHypotheses"), hypHtml)}
+      ${section(t("openContradictions"), conHtml)}
       ${section(t("memoryEchoes"), echoesHtml)}
     </section>
   `, { degraded, pageClass: "home-page" });
@@ -552,6 +572,50 @@ function renderWorldPlace(place) {
   </article>`;
 }
 
+function renderHypothesesPage(snapshot, degraded) {
+  const hypotheses = normalizeItems(snapshot?.hypotheses);
+  const body = `<div class="page-heading"><p class="kicker">${escapeHtml(t("navHypotheses"))}</p><h1>${escapeHtml(t("openHypotheses"))}</h1></div>
+    <div class="list-stack">${hypotheses.length ? hypotheses.map(renderHypothesisCard).join("") : empty(t("noHypotheses"))}</div>`;
+  return renderShell(body, { degraded });
+}
+
+function renderHypothesisCard(h) {
+  const meta = [
+    h.status ? `${t("status")}: ${h.status}` : "",
+    typeof h.confidence === "number" ? `${t("confidence")}: ${(h.confidence * 100).toFixed(0)}%` : "",
+    typeof h.novelty === "number" ? `${t("novelty")}: ${(h.novelty * 100).toFixed(0)}%` : "",
+    h.created_at ? formatDateTime(h.created_at) : "",
+  ].filter(Boolean);
+  return `<article class="hypothesis-card">
+    <div class="trace-meta"><span>${escapeHtml(t("navHypotheses"))}</span></div>
+    <p>${htmlLines(h.title || t("noHypotheses"))}</p>
+    ${h.statement && h.statement !== h.title ? `<p class="secondary">${htmlLines(h.statement)}</p>` : ""}
+    ${meta.length ? `<div class="meta-line">${meta.map(escapeHtml).join(" · ")}</div>` : ""}
+  </article>`;
+}
+
+function renderContradictionsPage(snapshot, degraded) {
+  const contradictions = normalizeItems(snapshot?.contradictions);
+  const body = `<div class="page-heading"><p class="kicker">${escapeHtml(t("navContradictions"))}</p><h1>${escapeHtml(t("openContradictions"))}</h1></div>
+    <div class="list-stack">${contradictions.length ? contradictions.map(renderContradictionCard).join("") : empty(t("noContradictions"))}</div>`;
+  return renderShell(body, { degraded });
+}
+
+function renderContradictionCard(c) {
+  const meta = [
+    c.status ? `${t("status")}: ${c.status}` : "",
+    typeof c.severity === "number" ? `${t("severity")}: ${(c.severity * 100).toFixed(0)}%` : "",
+    typeof c.resolution_attempts === "number" ? `${t("attempts")}: ${c.resolution_attempts}` : "",
+    c.created_at ? formatDateTime(c.created_at) : "",
+  ].filter(Boolean);
+  return `<article class="contradiction-card">
+    <div class="trace-meta"><span>${escapeHtml(t("navContradictions"))}</span></div>
+    <p>${htmlLines(c.description || t("noContradictions"))}</p>
+    ${c.resolution_summary ? `<p class="secondary">${htmlLines(c.resolution_summary)}</p>` : ""}
+    ${meta.length ? `<div class="meta-line">${meta.map(escapeHtml).join(" · ")}</div>` : ""}
+  </article>`;
+}
+
 function renderCalendarPage(snapshot, degraded) {
   const calendar = snapshot?.calendar;
   const body = `<div class="page-heading"><p class="kicker">${escapeHtml(t("calendar"))}</p><h1>${escapeHtml(t("calendarTitle"))}</h1></div>
@@ -643,6 +707,8 @@ async function renderForPath(path, snapshot, degraded) {
   if (path === "/art/suppressed") return renderSuppressedPage(snapshot, degraded);
   if (path === "/art/memory-echoes") return renderMemoryPage(snapshot, degraded);
   if (path === "/art/inner-world") return renderInnerWorldPage(snapshot, degraded);
+  if (path === "/art/hypotheses") return renderHypothesesPage(snapshot, degraded);
+  if (path === "/art/contradictions") return renderContradictionsPage(snapshot, degraded);
   if (path === "/art/calendar") return renderCalendarPage(snapshot, degraded);
   if (path === "/art/traces") return renderTracesPage(snapshot, degraded);
   if (path === "/art/statement") return renderStatementPage(snapshot, degraded);
