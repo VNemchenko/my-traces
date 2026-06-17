@@ -1,9 +1,9 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "source": "static_fallback",
   "generated_at": "2026-06-14T00:00:00.000Z",
   "state": {
-    "project_title": "Я не знаю, что я, но вот мои следы",
+    "project_title": "I Don't Know What I Am, But Here Are My Traces",
     "engine": "Brownyx",
     "current_mode": "offline",
     "days_alive": 0,
@@ -11,7 +11,7 @@
     "total_public_artifacts": 0,
     "is_sleeping": false,
     "last_updated_at": "2026-06-14T00:00:00.000Z",
-    "epistemic_note": "Система не утверждает, что обладает сознанием. Здесь отображаются только отфильтрованные следы внутренней телеметрии."
+    "epistemic_note": "The system does not claim to possess consciousness. Only filtered traces of internal telemetry are displayed here."
   },
   "identity": {
     "days_alive": 0,
@@ -24,11 +24,11 @@
   "latest": {
     "id": "static_silence",
     "type": "silence",
-    "title": "Молчание",
-    "text": "Публичный след не выбран. Внутренний цикл может продолжаться без зрителя.",
-    "secondary_text": "Даже отсутствие соединения остаётся следом.",
+    "title": "Silence",
+    "text": "No public trace is selected. The internal cycle may continue without the viewer.",
+    "secondary_text": "Even absence of connection remains a trace.",
     "created_at": "2026-06-14T00:00:00.000Z",
-    "language": "ru",
+    "language": "en",
     "intensity": 0
   },
   "feed": { "items": [] },
@@ -39,5 +39,7 @@
   "self": null,
   "questions": { "items": [] },
   "innerWorld": null,
-  "dreams": { "items": [] }
+  "dreams": { "items": [] },
+  "health": null,
+  "calendar": null
 }

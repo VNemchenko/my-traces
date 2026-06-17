@@ -30,10 +30,14 @@ async function readJson(baseUrl, path, fallback) {
 }
 
 const env = parseEnv(readFileSync(envPath, "utf8"));
-const apiBaseUrl = (env.SLEDSLED_API_BASE_URL || "https://mind.brownyx.com").replace(/\/$/, "");
+const apiBaseUrl = (env.TRACES_API_BASE_URL || "https://mind.brownyx.com").replace(/\/$/, "");
 const generatedAt = new Date().toISOString();
 
-const [state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self, questions, innerWorld, dreams] = await Promise.all([
+const now = new Date();
+const year = now.getFullYear();
+const month = String(now.getMonth() + 1).padStart(2, "0");
+
+const [state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self, questions, innerWorld, dreams, health, calendar] = await Promise.all([
   readJson(apiBaseUrl, "/api/public-art/state", {}),
   readJson(apiBaseUrl, "/api/public-art/identity", {}),
   readJson(apiBaseUrl, "/api/public-art/latest", null),
@@ -46,10 +50,12 @@ const [state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self
   readJson(apiBaseUrl, "/api/public-art/questions?limit=30", { items: [] }),
   readJson(apiBaseUrl, "/api/public-art/inner-world", null),
   readJson(apiBaseUrl, "/api/public-art/dreams?limit=30", { items: [] }),
+  readJson(apiBaseUrl, "/api/public-art/health", null),
+  readJson(apiBaseUrl, `/api/public-art/traces/calendar?year=${year}&month=${month}`, null),
 ]);
 
 const snapshot = {
-  schema_version: 2,
+  schema_version: 3,
   source: "static_fallback",
   generated_at: generatedAt,
   state,
@@ -64,6 +70,8 @@ const snapshot = {
   questions,
   innerWorld,
   dreams,
+  health,
+  calendar,
 };
 
 mkdirSync(dirname(outputPath), { recursive: true });

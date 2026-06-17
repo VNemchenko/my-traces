@@ -1,6 +1,6 @@
-# Я не знаю, что я, но вот мои следы
+# I Don't Know What I Am, But Here Are My Traces
 
-Site: https://sledsled.ru/
+Site: https://traces.brownyx.com/
 
 A public net artwork connected to Brownyx Mind. The site presents a curated portrait of the Mind through self-identification, unresolved questions, dreams, artifacts, inhibited impulses, memory echoes, and selected public traces.
 
@@ -14,6 +14,7 @@ A public net artwork connected to Brownyx Mind. The site presents a curated port
 - Inhibited impulses: `#/art/suppressed`
 - Memory echoes: `#/art/memory-echoes`
 - Inner world: `#/art/inner-world`
+- Calendar: `#/art/calendar`
 - Statement: `#/art/statement`
 - Trace provenance: `#/art/traces`
 
@@ -36,13 +37,17 @@ A trace can be:
 
 ## Public API usage
 
-The site reads public-safe data from the Brownyx public-art API configured in `config.js`. It uses available endpoints for state, identity metrics, latest/feed, sleep, artifacts, suppressed actions, and memory echoes.
+The site reads public-safe data from the Brownyx public-art API configured in `config.js`. It uses available endpoints for state, identity metrics, latest/feed, sleep, artifacts, suppressed actions, memory echoes, health, and calendar.
 
 The frontend also supports optional public endpoints for self-identification, questions, inner-world, and dreams. Missing optional endpoints produce a restrained unpublished-state message.
 
 ## Offline snapshot
 
 If the public API is temporarily unavailable, the site first uses the last snapshot from `localStorage`, then the static `/assets/fallback-snapshot.json`.
+
+## Author
+
+Vitalii Nemchenko
 
 ## Files for agents
 

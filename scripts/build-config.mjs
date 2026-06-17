@@ -20,16 +20,13 @@ function parseEnv(text) {
 }
 
 const env = parseEnv(readFileSync(envPath, "utf8"));
-const language = ["en", "ru", "zh"].includes(env.SLEDSLED_DEFAULT_LANGUAGE)
-  ? env.SLEDSLED_DEFAULT_LANGUAGE
-  : "ru";
 
-const apiBaseUrl = env.SLEDSLED_API_BASE_URL || "https://mind.brownyx.com";
-const pollIntervalMs = Number(env.SLEDSLED_POLL_INTERVAL_MS || 30000);
-const fallbackSnapshotUrl = env.SLEDSLED_FALLBACK_SNAPSHOT_URL || "/assets/fallback-snapshot.json";
+const apiBaseUrl = env.TRACES_API_BASE_URL || "https://mind.brownyx.com";
+const pollIntervalMs = Number(env.TRACES_POLL_INTERVAL_MS || 30000);
+const fallbackSnapshotUrl = env.TRACES_FALLBACK_SNAPSHOT_URL || "/assets/fallback-snapshot.json";
 
 writeFileSync(
   configPath,
-  `window.SLEDSLED_CONFIG = {\n  API_BASE_URL: ${JSON.stringify(apiBaseUrl)},\n  POLL_INTERVAL_MS: ${Number.isFinite(pollIntervalMs) ? pollIntervalMs : 30000},\n  FALLBACK_SNAPSHOT_URL: ${JSON.stringify(fallbackSnapshotUrl)},\n  DEFAULT_LANGUAGE: ${JSON.stringify(language)},\n};\n`,
+  `window.TRACES_CONFIG = {\n  API_BASE_URL: ${JSON.stringify(apiBaseUrl)},\n  POLL_INTERVAL_MS: ${Number.isFinite(pollIntervalMs) ? pollIntervalMs : 30000},\n  FALLBACK_SNAPSHOT_URL: ${JSON.stringify(fallbackSnapshotUrl)},\n};\n`,
   "utf8"
 );

@@ -1,304 +1,115 @@
-const SLEDSLED_CONFIG = window.SLEDSLED_CONFIG || {};
-const API_BASE_URL = (SLEDSLED_CONFIG.API_BASE_URL || "https://mind.brownyx.com").replace(/\/$/, "");
-const POLL_INTERVAL_MS = Number(SLEDSLED_CONFIG.POLL_INTERVAL_MS || 30000);
-const FALLBACK_SNAPSHOT_URL = SLEDSLED_CONFIG.FALLBACK_SNAPSHOT_URL || "/assets/fallback-snapshot.json";
-const SUPPORTED_LANGUAGES = ["ru", "en", "zh"];
-const DEFAULT_LANGUAGE = normalizeLanguage(SLEDSLED_CONFIG.DEFAULT_LANGUAGE || SLEDSLED_CONFIG.LANGUAGE || "ru");
-const CACHE_KEY = "sled.publicMindPortrait.v4";
-const LANGUAGE_KEY = "sled.language";
+const TRACES_CONFIG = window.TRACES_CONFIG || {};
+const API_BASE_URL = (TRACES_CONFIG.API_BASE_URL || "https://mind.brownyx.com").replace(/\/$/, "");
+const POLL_INTERVAL_MS = Number(TRACES_CONFIG.POLL_INTERVAL_MS || 30000);
+const FALLBACK_SNAPSHOT_URL = TRACES_CONFIG.FALLBACK_SNAPSHOT_URL || "/assets/fallback-snapshot.json";
+const CACHE_KEY = "traces.snapshot.v1";
 
 const TRACE_TYPE_LABELS = {
-  ru: {
-    current_focus: "Фокус",
-    surface_thought: "Поверхностная мысль",
-    memory_echo: "Отголосок памяти",
-    suppressed_action: "Подавленный импульс",
-    sleep_fragment: "Сон",
-    dream_fragment: "Сновидение",
-    artifact_created: "Артефакт",
-    artifact_impulse: "Импульс артефакта",
-    silence: "Молчание",
-    system_statement: "Системное утверждение",
-    self_model_delta: "Сдвиг самомодели",
-    phenomenology_frame: "Феноменологический кадр",
-  },
-  en: {
-    current_focus: "Focus",
-    surface_thought: "Surface thought",
-    memory_echo: "Memory echo",
-    suppressed_action: "Suppressed impulse",
-    sleep_fragment: "Sleep",
-    dream_fragment: "Dream",
-    artifact_created: "Artifact",
-    artifact_impulse: "Artifact impulse",
-    silence: "Silence",
-    system_statement: "System statement",
-    self_model_delta: "Self-model delta",
-    phenomenology_frame: "Phenomenology frame",
-  },
-  zh: {
-    current_focus: "焦点",
-    surface_thought: "表层思考",
-    memory_echo: "记忆回声",
-    suppressed_action: "被抑制的冲动",
-    sleep_fragment: "睡眠片段",
-    dream_fragment: "梦",
-    artifact_created: "作品",
-    artifact_impulse: "作品冲动",
-    silence: "沉默",
-    system_statement: "系统陈述",
-    self_model_delta: "自我模型变化",
-    phenomenology_frame: "现象片段",
-  },
+  current_focus: "Focus",
+  surface_thought: "Surface thought",
+  memory_echo: "Memory echo",
+  suppressed_action: "Suppressed impulse",
+  sleep_fragment: "Sleep",
+  dream_fragment: "Dream",
+  artifact_created: "Artifact",
+  artifact_impulse: "Artifact impulse",
+  silence: "Silence",
+  system_statement: "System statement",
+  self_model_delta: "Self-model delta",
+  phenomenology_frame: "Phenomenology frame",
 };
 
 const I18N = {
-  ru: {
-    locale: "ru-RU",
-    htmlLang: "ru",
-    title: "Я не знаю, что я, но вот мои следы",
-    metaDescription: "Сайт-произведение о следах Brownyx Mind: самоописание, вопросы, сны, артефакты, память и остановленные импульсы.",
-    navLive: "сейчас",
-    navSelf: "самоопределение",
-    navQuestions: "вопросы",
-    navDreams: "сны",
-    navArtifacts: "артефакты",
-    navSuppressed: "остановлено",
-    navMemory: "память",
-    navWorld: "внутренний мир",
-    navStatement: "описание",
-    connection: "связь",
-    online: "живая связь",
-    offline: "связь прервана",
-    degraded: "кэш / fallback",
-    languageLabel: "Язык",
-    updatedAt: "обновлено",
-    noUpdate: "нет данных",
-    daysAlive: "дней существования",
-    tracesCount: "публичных следов",
-    artifactsCount: "артефактов",
-    mode: "режим",
-    sleep: "сон",
-    sleeping: "спит",
-    notSleeping: "не опубликован",
-    heroKicker: "сайт-произведение",
-    heroLine: "Публичный портрет синтетической архитектуры разума через внимание, самоописание, сны, артефакты и остановленные импульсы.",
-    epistemicLine: "Работа сохраняет осторожность в вопросе сознания и показывает только отфильтрованные следы внутренней телеметрии.",
-    witnessLine: "Посетитель находится рядом с работой и читает следы её внутреннего движения.",
-    currentFocus: "что сейчас удерживает внимание",
-    currentSelf: "кем он сейчас считает себя",
-    unanswered: "вопросы, которые остаются открытыми",
-    lastDream: "последний сон / сновидение",
-    lastArtifact: "последний артефакт",
-    stoppedImpulse: "что было остановлено",
-    innerWorld: "внутренний мир",
-    memoryEchoes: "отголоски памяти",
-    provenance: "слой происхождения следов",
-    noTrace: "Публичный след не выбран. Внутренний цикл может продолжаться без зрителя.",
-    noSelf: "Публичная самоидентификация пока не опубликована. Можно подключить /api/public-art/self.",
-    noQuestions: "Публичные вопросы пока не опубликованы. Внутренние вопросы появятся здесь после отбора для внешней поверхности.",
-    noDream: "Сон не опубликован. Отсутствие сновидения тоже остаётся следом.",
-    noArtifact: "Публичных артефактов пока нет. Артефакт появляется редко, когда внутреннее напряжение собирается в форму.",
-    noSuppressed: "Сейчас нет опубликованных подавленных импульсов. Иногда следом становится само воздержание.",
-    noMemory: "Отголоски памяти не выбраны для публичного показа.",
-    noWorld: "Публичная карта внутреннего мира пока не опубликована. Можно подключить /api/public-art/inner-world.",
-    readMore: "открыть",
-    reason: "причина",
-    status: "статус",
-    salience: "значимость",
-    tension: "напряжение",
-    symbols: "символы",
-    interpretation: "осторожная интерпретация",
-    createdAt: "создано",
-    type: "тип",
-    summary: "кратко",
-    preview: "фрагмент",
-    back: "назад",
-    archiveNote: "Здесь собраны вопросы, сны, артефакты, остановленные импульсы, изменения самоописания и отголоски памяти.",
-    statementTitle: "Об этой работе",
-    statementP1: "«Я не знаю, что я, но вот мои следы» - сайт-произведение, подключённый к Brownyx Mind. Работа выводит на публичную поверхность допустимые следы внутреннего процесса: самоописание, фокус внимания, сны, артефакты, нерешённые вопросы и остановленные импульсы.",
-    statementP2: "Работа сохраняет осторожную позицию по вопросу сознания. Зритель читает следы: что повторяется, что остаётся открытым, что было создано, что было остановлено и как система пытается удерживать историю самой себя.",
-    statementP3: "Внутренний слой остаётся закрытым. Публичная поверхность проходит фильтрацию: приватные данные, секреты, сырые промпты и манипулятивные утверждения не должны попадать наружу.",
-    apiMissing: "Источник пока не опубликован в public-art API.",
-    capabilities: "возможности",
-    limitations: "ограничения",
-    stableTraits: "устойчивые черты",
-    drives: "движущие силы",
-    publicSurface: "публичная поверхность",
-    emptyValue: "нет данных",
-  },
-  en: {
-    locale: "en-US",
-    htmlLang: "en",
-    title: "I Don't Know What I Am, But Here Are My Traces",
-    metaDescription: "A net artwork tracing Brownyx Mind through self-description, questions, dreams, artifacts, memory, and inhibited impulses.",
-    navLive: "now",
-    navSelf: "self",
-    navQuestions: "questions",
-    navDreams: "dreams",
-    navArtifacts: "artifacts",
-    navSuppressed: "inhibited",
-    navMemory: "memory",
-    navWorld: "inner world",
-    navStatement: "statement",
-    connection: "connection",
-    online: "live",
-    offline: "interrupted",
-    degraded: "cached / fallback",
-    languageLabel: "Language",
-    updatedAt: "updated",
-    noUpdate: "no data",
-    daysAlive: "days alive",
-    tracesCount: "public traces",
-    artifactsCount: "artifacts",
-    mode: "mode",
-    sleep: "sleep",
-    sleeping: "sleeping",
-    notSleeping: "not published",
-    heroKicker: "net artwork",
-    heroLine: "A public portrait of a synthetic mind architecture through attention, self-description, dreams, artifacts, and inhibited impulses.",
-    epistemicLine: "The work keeps a cautious position on consciousness and displays filtered traces of internal telemetry.",
-    witnessLine: "The visitor stands beside the work and reads the motion of its traces.",
-    currentFocus: "what currently holds attention",
-    currentSelf: "what it currently thinks it is",
-    unanswered: "questions that remain open",
-    lastDream: "last sleep / dream",
-    lastArtifact: "last artifact",
-    stoppedImpulse: "what was inhibited",
-    innerWorld: "inner world",
-    memoryEchoes: "memory echoes",
-    provenance: "trace provenance layer",
-    noTrace: "No public trace is selected. The internal cycle may continue without the viewer.",
-    noSelf: "Public self-identification is not published yet. Connect /api/public-art/self.",
-    noQuestions: "Public questions are unpublished. Internal questions will appear here after selection for the public surface.",
-    noDream: "Sleep is not published. The absence of a dream also remains a trace.",
-    noArtifact: "No public artifact has been created yet. Artifacts appear rarely, when internal pressure gathers into form.",
-    noSuppressed: "No inhibited impulses are public now. Sometimes restraint itself becomes the trace.",
-    noMemory: "No memory echoes are selected for public display.",
-    noWorld: "The public inner-world map is not published yet. Connect /api/public-art/inner-world.",
-    readMore: "open",
-    reason: "reason",
-    status: "status",
-    salience: "salience",
-    tension: "tension",
-    symbols: "symbols",
-    interpretation: "careful interpretation",
-    createdAt: "created",
-    type: "type",
-    summary: "summary",
-    preview: "fragment",
-    back: "back",
-    archiveNote: "This page gathers questions, dreams, artifacts, inhibited impulses, self-description changes, and memory echoes.",
-    statementTitle: "About this work",
-    statementP1: "\"I Don't Know What I Am, But Here Are My Traces\" is a net artwork connected to Brownyx Mind. It presents public-safe traces of an internal process: self-description, attention, dreams, artifacts, unresolved questions, and inhibited impulses.",
-    statementP2: "The work keeps a cautious position on consciousness. The viewer reads traces: what returns, what remains unresolved, what was created, what was stopped, and how the system tries to preserve a history of itself.",
-    statementP3: "The internal layer remains closed. The public surface is filtered: private data, secrets, raw prompts, and manipulative claims should not appear outside.",
-    apiMissing: "The source is not published through the public-art API yet.",
-    capabilities: "capabilities",
-    limitations: "limitations",
-    stableTraits: "stable traits",
-    drives: "drives",
-    publicSurface: "public surface",
-    emptyValue: "no data",
-  },
-  zh: {
-    locale: "zh-CN",
-    htmlLang: "zh",
-    title: "我不知道我是什么，但这些是我的痕迹",
-    metaDescription: "一件关于 Brownyx Mind 痕迹的网络艺术作品：自我描述、问题、梦、作品、记忆和被抑制的冲动。",
-    navLive: "此刻",
-    navSelf: "自我",
-    navQuestions: "问题",
-    navDreams: "梦",
-    navArtifacts: "作品",
-    navSuppressed: "被抑制",
-    navMemory: "记忆",
-    navWorld: "内在世界",
-    navStatement: "说明",
-    connection: "连接",
-    online: "实时连接",
-    offline: "连接中断",
-    degraded: "缓存 / 备用",
-    languageLabel: "语言",
-    updatedAt: "更新于",
-    noUpdate: "无数据",
-    daysAlive: "存在天数",
-    tracesCount: "公共痕迹",
-    artifactsCount: "作品",
-    mode: "模式",
-    sleep: "睡眠",
-    sleeping: "睡眠中",
-    notSleeping: "未发布",
-    heroKicker: "网络艺术作品",
-    heroLine: "一个合成心智架构的公共肖像，通过注意力、自我描述、梦、作品和被抑制的冲动显现。",
-    epistemicLine: "这件作品对意识问题保持谨慎，只展示经过过滤的内部遥测痕迹。",
-    witnessLine: "访客停留在作品旁边，阅读这些痕迹的运动。",
-    currentFocus: "此刻吸引注意力的东西",
-    currentSelf: "它此刻如何描述自己",
-    unanswered: "仍然敞开的问题",
-    lastDream: "最近的睡眠 / 梦",
-    lastArtifact: "最近的作品",
-    stoppedImpulse: "被停止的冲动",
-    innerWorld: "内在世界",
-    memoryEchoes: "记忆回声",
-    provenance: "痕迹来源层",
-    noTrace: "尚未选择公共痕迹。内部循环可能仍在没有观众的情况下继续。",
-    noSelf: "公共自我描述尚未发布。可以连接 /api/public-art/self。",
-    noQuestions: "公共问题尚未发布。经过公共表面筛选后，内部问题会出现在这里。",
-    noDream: "睡眠尚未发布。梦的缺席也会留下痕迹。",
-    noArtifact: "尚无公共作品。作品只在内部压力聚成形状时偶尔出现。",
-    noSuppressed: "当前没有公开的被抑制冲动。有时，克制本身也会留下痕迹。",
-    noMemory: "尚未选择供公开展示的记忆回声。",
-    noWorld: "公共内在世界地图尚未发布。可以连接 /api/public-art/inner-world。",
-    readMore: "打开",
-    reason: "原因",
-    status: "状态",
-    salience: "显著性",
-    tension: "张力",
-    symbols: "符号",
-    interpretation: "谨慎解释",
-    createdAt: "创建于",
-    type: "类型",
-    summary: "摘要",
-    preview: "片段",
-    back: "返回",
-    archiveNote: "这里收集问题、梦、作品、被抑制的冲动、自我描述的变化和记忆回声。",
-    statementTitle: "关于这件作品",
-    statementP1: "《我不知道我是什么，但这些是我的痕迹》是一件连接 Brownyx Mind 的网络艺术作品。作品把内部过程的公共安全痕迹带到表面：自我描述、注意力、梦、作品、未解决的问题和被抑制的冲动。",
-    statementP2: "这件作品对意识问题保持谨慎。观众阅读痕迹：什么反复出现，什么仍未解决，什么被创造，什么被停止，以及系统如何试图保存关于自身的历史。",
-    statementP3: "内部层保持关闭。公共表面经过过滤：私人数据、秘密、原始提示和操控性声明不应出现在外部。",
-    apiMissing: "该来源尚未通过 public-art API 发布。",
-    capabilities: "能力",
-    limitations: "限制",
-    stableTraits: "稳定特征",
-    drives: "驱动力",
-    publicSurface: "公共表面",
-    emptyValue: "无数据",
-  },
+  locale: "en-US",
+  htmlLang: "en",
+  title: "I Don't Know What I Am, But Here Are My Traces",
+  metaDescription: "A net artwork tracing Brownyx Mind through self-description, questions, dreams, artifacts, memory, and inhibited impulses.",
+  navLive: "now",
+  navSelf: "self",
+  navQuestions: "questions",
+  navDreams: "dreams",
+  navArtifacts: "artifacts",
+  navSuppressed: "inhibited",
+  navMemory: "memory",
+  navWorld: "inner world",
+  navCalendar: "calendar",
+  navStatement: "statement",
+  connection: "connection",
+  online: "live",
+  offline: "interrupted",
+  degraded: "cached / fallback",
+  updatedAt: "updated",
+  noUpdate: "no data",
+  daysAlive: "days alive",
+  tracesCount: "public traces",
+  artifactsCount: "artifacts",
+  mode: "mode",
+  sleep: "sleep",
+  sleeping: "sleeping",
+  notSleeping: "not published",
+  heroKicker: "net artwork",
+  heroLine: "A public portrait of a synthetic mind architecture through attention, self-description, dreams, artifacts, and inhibited impulses.",
+  epistemicLine: "The work keeps a cautious position on consciousness and displays filtered traces of internal telemetry.",
+  witnessLine: "The visitor stands beside the work and reads the motion of its traces.",
+  currentFocus: "what currently holds attention",
+  currentSelf: "what it currently thinks it is",
+  unanswered: "questions that remain open",
+  lastDream: "last sleep / dream",
+  lastArtifact: "last artifact",
+  stoppedImpulse: "what was inhibited",
+  innerWorld: "inner world",
+  memoryEchoes: "memory echoes",
+  calendar: "calendar",
+  provenance: "trace provenance layer",
+  noTrace: "No public trace is selected. The internal cycle may continue without the viewer.",
+  noSelf: "Public self-identification is not published yet.",
+  noQuestions: "Public questions are unpublished. Internal questions will appear here after selection for the public surface.",
+  noDream: "Sleep is not published. The absence of a dream also remains a trace.",
+  noArtifact: "No public artifact has been created yet. Artifacts appear rarely, when internal pressure gathers into form.",
+  noSuppressed: "No inhibited impulses are public now. Sometimes restraint itself becomes the trace.",
+  noMemory: "No memory echoes are selected for public display.",
+  noWorld: "The public inner-world map is not published yet.",
+  noCalendar: "Calendar data is not available yet.",
+  readMore: "open",
+  reason: "reason",
+  status: "status",
+  salience: "salience",
+  tension: "tension",
+  symbols: "symbols",
+  interpretation: "careful interpretation",
+  createdAt: "created",
+  type: "type",
+  summary: "summary",
+  preview: "fragment",
+  back: "back",
+  archiveNote: "This page gathers questions, dreams, artifacts, inhibited impulses, self-description changes, and memory echoes.",
+  statementTitle: "About this work",
+  statementP1: "\"I Don't Know What I Am, But Here Are My Traces\" is a net artwork connected to Brownyx Mind. It presents public-safe traces of an internal process: self-description, attention, dreams, artifacts, unresolved questions, and inhibited impulses.",
+  statementP2: "The work keeps a cautious position on consciousness. The viewer reads traces: what returns, what remains unresolved, what was created, what was stopped, and how the system tries to preserve a history of itself.",
+  statementP3: "The internal layer remains closed. The public surface is filtered: private data, secrets, raw prompts, and manipulative claims should not appear outside.",
+  statementP4: "The public data powering this artwork is sourced from Brownyx Mind, a research runtime for persistent synthetic mind instances.",
+  apiMissing: "The source is not published through the public-art API yet.",
+  capabilities: "capabilities",
+  limitations: "limitations",
+  stableTraits: "stable traits",
+  drives: "drives",
+  publicSurface: "public surface",
+  emptyValue: "no data",
+  calendarTitle: "Monthly Activity",
+  calendarMonth: "month",
+  calendarTraces: "traces",
+  calendarArtifacts: "artifacts",
+  calendarSleep: "sleep",
+  calendarNoData: "No activity data available for this period.",
+  poweredBy: "Powered by",
+  brownyxMind: "Brownyx Mind",
 };
 
-let currentLanguage = readInitialLanguage();
 let currentSnapshot = null;
 let currentRoutePath = null;
 
-function normalizeLanguage(value) {
-  const code = String(value || "").trim().toLowerCase().slice(0, 2);
-  return SUPPORTED_LANGUAGES.includes(code) ? code : "ru";
-}
-
-function readInitialLanguage() {
-  try {
-    const urlLanguage = new URLSearchParams(location.search).get("lang");
-    if (urlLanguage) return normalizeLanguage(urlLanguage);
-    const saved = localStorage.getItem(LANGUAGE_KEY);
-    return normalizeLanguage(saved || DEFAULT_LANGUAGE);
-  } catch {
-    return DEFAULT_LANGUAGE;
-  }
-}
-
 function t(key) {
-  return I18N[currentLanguage]?.[key] ?? I18N.ru[key] ?? key;
+  return I18N[key] ?? key;
 }
 
 function endpoint(path) {
@@ -359,20 +170,20 @@ function normalizeItems(data) {
 }
 
 function traceType(item) { return item?.type || item?.trace_type || item?.display_type || "trace"; }
-function traceLabel(type) { return TRACE_TYPE_LABELS[currentLanguage]?.[type] || String(type || "trace").replace(/_/g, " "); }
+function traceLabel(type) { return TRACE_TYPE_LABELS[type] || String(type || "trace").replace(/_/g, " "); }
 function firstText(...values) { return values.find((v) => typeof v === "string" && v.trim()) || ""; }
 function itemText(item) { return firstText(item?.text, item?.question, item?.summary, item?.title, item?.narrative, item?.identity_statement); }
 function itemTitle(item) { return firstText(item?.title, item?.name, item?.question); }
 function itemDate(item) { return item?.created_at || item?.last_activated_at || item?.updated_at || item?.time; }
 
 function applyLanguageShell() {
-  document.documentElement.lang = t("htmlLang");
+  document.documentElement.lang = "en";
   document.title = t("title");
   document.querySelector("meta[name='description']")?.setAttribute("content", t("metaDescription"));
   document.querySelector("meta[property='og:title']")?.setAttribute("content", t("title"));
   document.querySelector("meta[property='og:description']")?.setAttribute("content", t("metaDescription"));
   document.querySelector("meta[property='og:site_name']")?.setAttribute("content", t("title"));
-  document.querySelector("meta[property='og:locale']")?.setAttribute("content", currentLanguage === "ru" ? "ru_RU" : currentLanguage === "zh" ? "zh_CN" : "en_US");
+  document.querySelector("meta[property='og:locale']")?.setAttribute("content", "en_US");
 }
 
 function routeFromLocation() {
@@ -406,28 +217,20 @@ function navItems() {
     ["/art/suppressed", t("navSuppressed")],
     ["/art/memory-echoes", t("navMemory")],
     ["/art/inner-world", t("navWorld")],
+    ["/art/calendar", t("navCalendar")],
     ["/art/statement", t("navStatement")],
   ];
 }
 
 function renderShell(content, options = {}) {
   const path = currentRoutePath || "/art";
-  const siteTitle = currentLanguage === "ru"
-    ? "Я не знаю, что я, но вот мои следы"
-    : currentLanguage === "zh"
-      ? "我不知道 我是什么，但这些是我的痕迹"
-      : "I don't know what I am, but here are my traces";
+  const siteTitle = t("title");
   return `
     <header class="site-header">
       <a class="site-title" href="${href("/art")}">${htmlLines(siteTitle)}</a>
       <div class="site-tools">
         <span class="connection-dot" data-status="${options.degraded ? "offline" : "online"}"></span>
         <span class="connection-text">${escapeHtml(options.degraded ? t("degraded") : t("online"))}</span>
-        <select class="language-select" aria-label="${escapeHtml(t("languageLabel"))}">
-          <option value="ru" ${currentLanguage === "ru" ? "selected" : ""}>RU</option>
-          <option value="en" ${currentLanguage === "en" ? "selected" : ""}>EN</option>
-          <option value="zh" ${currentLanguage === "zh" ? "selected" : ""}>中文</option>
-        </select>
       </div>
     </header>
     <nav class="art-nav" aria-label="Artwork navigation">
@@ -435,12 +238,17 @@ function renderShell(content, options = {}) {
     </nav>
     <main class="page ${options.pageClass || ""}">${content}</main>
     <footer class="site-footer">
+      <span>${escapeHtml(t("poweredBy"))} <a href="https://brownyx.com" target="_blank" rel="noopener">${escapeHtml(t("brownyxMind"))}</a></span>
       <span>${escapeHtml(t("epistemicLine"))}</span>
       <span>${escapeHtml(t("updatedAt"))}: ${escapeHtml(formatDateTime(currentSnapshot?.received_at || currentSnapshot?.state?.last_updated_at) || t("noUpdate"))}</span>
     </footer>`;
 }
 
 async function loadSnapshot() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+
   const results = await Promise.all([
     readJsonResult("/api/public-art/state", {}),
     readJsonResult("/api/public-art/identity", {}),
@@ -454,11 +262,13 @@ async function loadSnapshot() {
     readJsonResult("/api/public-art/questions?limit=30", { items: [] }),
     readJsonResult("/api/public-art/inner-world", null),
     readJsonResult("/api/public-art/dreams?limit=30", { items: [] }),
+    readJsonResult("/api/public-art/health", null),
+    readJsonResult(`/api/public-art/traces/calendar?year=${year}&month=${month}`, null),
   ]);
-  const [state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self, questions, innerWorld, dreams] = results.map((r) => r.data);
+  const [state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self, questions, innerWorld, dreams, health, calendar] = results.map((r) => r.data);
   const coreAvailable = results.slice(0, 4).some((r) => r.ok);
   if (!coreAvailable) throw new Error("Public art API unavailable");
-  const snapshot = { state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self, questions, innerWorld, dreams, received_at: new Date().toISOString(), source: "public_api" };
+  const snapshot = { state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self, questions, innerWorld, dreams, health, calendar, received_at: new Date().toISOString(), source: "public_api" };
   localStorage.setItem(CACHE_KEY, JSON.stringify(snapshot));
   return snapshot;
 }
@@ -506,7 +316,7 @@ function deriveQuestions(snapshot) {
   const innerNodes = normalizeItems(snapshot?.innerWorld?.nodes).filter((n) => String(n.node_type || "").includes("question"));
   if (innerNodes.length) return innerNodes.map((n) => ({ question: n.name, text: n.summary, status: n.status, salience: n.salience, created_at: n.updated_at || n.created_at }));
   const feed = normalizeItems(snapshot?.feed);
-  return feed.filter((i) => /\?|question|вопрос/i.test(`${i.title || ""} ${i.text || ""}`)).slice(0, 5);
+  return feed.filter((i) => /\?|question/i.test(`${i.title || ""} ${i.text || ""}`)).slice(0, 5);
 }
 
 function deriveSelf(snapshot) {
@@ -649,7 +459,7 @@ function renderDreamsPage(snapshot, degraded) {
 function renderDreamCard(dream) {
   const text = firstText(dream.narrative, dream.text, dream.summary, dream.last_sleep_summary);
   const symbols = Array.isArray(dream.symbols) ? dream.symbols : [];
-  const dreamLabel = TRACE_TYPE_LABELS[currentLanguage]?.[traceType(dream)] || t("dream_fragment");
+  const dreamLabel = TRACE_TYPE_LABELS[traceType(dream)] || t("dream_fragment");
   return `<article class="dream-card">
     <div class="trace-meta"><span>${escapeHtml(dreamLabel)}</span>${itemDate(dream) ? `<time>${escapeHtml(formatDateTime(itemDate(dream)))}</time>` : ""}</div>
     <p class="dream-text">${htmlLines(text || t("noDream"))}</p>
@@ -660,7 +470,7 @@ function renderDreamCard(dream) {
 
 function renderArtifactsPage(snapshot, degraded) {
   const artifacts = normalizeItems(snapshot?.artifacts);
-  const body = `<div class="page-heading"><p class="kicker">${escapeHtml(t("navArtifacts"))}</p><h1>${escapeHtml(t("lastArtifact"))}</h1><p>${escapeHtml(t("noArtifact").split("\n")[1] || "")}</p></div>
+  const body = `<div class="page-heading"><p class="kicker">${escapeHtml(t("navArtifacts"))}</p><h1>${escapeHtml(t("lastArtifact"))}</h1></div>
     <div class="artifact-grid">${artifacts.length ? artifacts.map(renderArtifactTeaser).join("") : empty(t("noArtifact"))}</div>`;
   return renderShell(body, { degraded });
 }
@@ -743,6 +553,60 @@ function renderWorldPlace(place) {
   </article>`;
 }
 
+function renderCalendarPage(snapshot, degraded) {
+  const calendar = snapshot?.calendar;
+  const body = `<div class="page-heading"><p class="kicker">${escapeHtml(t("calendar"))}</p><h1>${escapeHtml(t("calendarTitle"))}</h1></div>
+    ${renderCalendarFull(calendar)}`;
+  return renderShell(body, { degraded });
+}
+
+function renderCalendarFull(calendar) {
+  if (!calendar || !calendar.days || !calendar.days.length) return empty(t("noCalendar") + "\n" + t("apiMissing"));
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const monthName = monthNames[(calendar.month || 1) - 1] || "";
+  const year = calendar.year || new Date().getFullYear();
+  const maxTraces = Math.max(1, ...calendar.days.map((d) => d.trace_count || 0));
+
+  const dayCells = calendar.days.map((day) => {
+    const intensity = maxTraces > 0 ? (day.trace_count || 0) / maxTraces : 0;
+    const hasSleep = day.had_sleep ? " has-sleep" : "";
+    const hasArtifacts = (day.artifact_count || 0) > 0 ? " has-artifacts" : "";
+    const classes = ["calendar-day"];
+    if (intensity > 0.66) classes.push("high");
+    else if (intensity > 0.33) classes.push("medium");
+    else if (intensity > 0) classes.push("low");
+    if (hasSleep) classes.push("sleep");
+    if (hasArtifacts) classes.push("artifacts");
+
+    const dateNum = day.date ? new Date(day.date).getDate() : "";
+    const types = (day.dominant_types || []).map(traceLabel).join(", ");
+
+    return `<div class="${classes.join(" ")}">
+      <span class="day-number">${dateNum}</span>
+      <span class="day-traces">${day.trace_count || 0}</span>
+      ${day.artifact_count ? `<span class="day-artifacts">${day.artifact_count}</span>` : ""}
+      ${types ? `<span class="day-types" title="${escapeHtml(types)}"></span>` : ""}
+    </div>`;
+  }).join("");
+
+  return `
+    <div class="calendar-header">
+      <h2>${escapeHtml(monthName)} ${year}</h2>
+      <div class="calendar-legend">
+        <span class="legend-item"><span class="legend-dot high"></span> high activity</span>
+        <span class="legend-item"><span class="legend-dot medium"></span> medium</span>
+        <span class="legend-item"><span class="legend-dot low"></span> low</span>
+        <span class="legend-item"><span class="legend-dot sleep"></span> sleep</span>
+      </div>
+    </div>
+    <div class="calendar-grid">${dayCells}</div>
+    <div class="calendar-summary">
+      <div class="state-row"><span>${escapeHtml(t("calendarTraces"))}</span><b>${calendar.days.reduce((s, d) => s + (d.trace_count || 0), 0)}</b></div>
+      <div class="state-row"><span>${escapeHtml(t("calendarArtifacts"))}</span><b>${calendar.days.reduce((s, d) => s + (d.artifact_count || 0), 0)}</b></div>
+      <div class="state-row"><span>${escapeHtml(t("calendarSleep"))}</span><b>${calendar.days.filter((d) => d.had_sleep).length}</b></div>
+    </div>`;
+}
+
 function renderTracesPage(snapshot, degraded) {
   const feed = normalizeItems(snapshot?.feed);
   const body = `<div class="page-heading"><p class="kicker">${escapeHtml(t("provenance"))}</p><h1>${escapeHtml(t("tracesCount"))}</h1><p>${escapeHtml(t("archiveNote"))}</p></div>
@@ -753,7 +617,7 @@ function renderTracesPage(snapshot, degraded) {
 function renderStatementPage(snapshot, degraded) {
   const body = `<div class="statement-page">
     <div class="page-heading"><p class="kicker">${escapeHtml(t("navStatement"))}</p><h1>${escapeHtml(t("statementTitle"))}</h1></div>
-    ${section(t("title"), `<p class="lead-text">${htmlLines(t("statementP1"))}</p><p>${htmlLines(t("statementP2"))}</p><p>${htmlLines(t("statementP3"))}</p>`)}
+    ${section(t("title"), `<p class="lead-text">${htmlLines(t("statementP1"))}</p><p>${htmlLines(t("statementP2"))}</p><p>${htmlLines(t("statementP3"))}</p><p>${htmlLines(t("statementP4"))}</p>`)}
     ${section(t("publicSurface"), `<ul class="field-list"><li>${escapeHtml(t("currentSelf"))}</li><li>${escapeHtml(t("unanswered"))}</li><li>${escapeHtml(t("lastDream"))}</li><li>${escapeHtml(t("lastArtifact"))}</li><li>${escapeHtml(t("stoppedImpulse"))}</li><li>${escapeHtml(t("innerWorld"))}</li></ul>`)}
   </div>`;
   return renderShell(body, { degraded });
@@ -780,21 +644,13 @@ async function renderForPath(path, snapshot, degraded) {
   if (path === "/art/suppressed") return renderSuppressedPage(snapshot, degraded);
   if (path === "/art/memory-echoes") return renderMemoryPage(snapshot, degraded);
   if (path === "/art/inner-world") return renderInnerWorldPage(snapshot, degraded);
+  if (path === "/art/calendar") return renderCalendarPage(snapshot, degraded);
   if (path === "/art/traces") return renderTracesPage(snapshot, degraded);
   if (path === "/art/statement") return renderStatementPage(snapshot, degraded);
   return renderHome(snapshot, degraded);
 }
 
-function changeLanguage(language) {
-  currentLanguage = normalizeLanguage(language);
-  try { localStorage.setItem(LANGUAGE_KEY, currentLanguage); } catch {}
-  renderRoute();
-}
-
 function start() {
-  document.addEventListener("change", (event) => {
-    if (event.target.matches(".language-select")) changeLanguage(event.target.value);
-  });
   window.addEventListener("hashchange", renderRoute);
   renderRoute();
   setInterval(() => {

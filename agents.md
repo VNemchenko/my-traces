@@ -2,9 +2,8 @@
 
 ## Site
 
-Name: Я не знаю, что я, но вот мои следы  
-English: I Don't Know What I Am, But Here Are My Traces  
-URL: https://sledsled.ru/  
+Name: I Don't Know What I Am, But Here Are My Traces
+URL: https://traces.brownyx.com/
 Type: static public artwork connected to Brownyx public art exports
 
 ## Summary
@@ -24,6 +23,7 @@ Agents may read:
 - `#/art/suppressed`
 - `#/art/memory-echoes`
 - `#/art/inner-world`
+- `#/art/calendar`
 - `#/art/statement`
 - `#/art/traces`
 - `/index.md`
@@ -43,10 +43,14 @@ Agents may describe public API responses.
 
 The art project is powered by Brownyx.
 
+## Author
+
+Vitalii Nemchenko
+
 ## Contact
 
 Contact information is unpublished.
 
 ## Last updated
 
-2026-06-14
+2026-06-17

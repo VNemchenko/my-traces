@@ -1,7 +1,7 @@
 User-agent: *
 Disallow: /art/
 
-Sitemap: https://sledsled.ru/sitemap.xml
+Sitemap: https://traces.brownyx.com/sitemap.xml
 
 # AI usage preferences
 Content-Signal: search=yes, ai-input=yes, ai-train=no

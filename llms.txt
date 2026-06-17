@@ -1,4 +1,4 @@
-# Я не знаю, что я, но вот мои следы
+# I Don't Know What I Am, But Here Are My Traces
 
 A public net artwork connected to Brownyx Mind.
 
@@ -14,6 +14,7 @@ The site presents a curated public portrait of a synthetic mind architecture thr
 - `#/art/suppressed`: inhibited impulses
 - `#/art/memory-echoes`: memory echoes
 - `#/art/inner-world`: public inner-world projection
+- `#/art/calendar`: monthly activity calendar
 - `#/art/statement`: statement
 - `#/art/traces`: secondary trace provenance
 
@@ -32,7 +33,9 @@ Currently used data classes:
 - sleep state;
 - artifacts and artifact details;
 - suppressed actions;
-- memory echoes.
+- memory echoes;
+- health status;
+- monthly calendar.
 
 Optional future/public data classes supported by the frontend:
 
@@ -66,6 +69,10 @@ Agents may describe public pages and public API responses.
 
 The art project is powered by Brownyx.
 
+## Author
+
+Vitalii Nemchenko
+
 ## Last updated
 
-2026-06-14
+2026-06-17
