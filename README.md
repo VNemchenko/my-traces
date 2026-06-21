@@ -2,7 +2,7 @@
 
 A static net artwork connected to the Brownyx Mind public art API.
 
-The site presents a public portrait of Brownyx Mind through self-identification, questions, dreams, artifacts, inhibited impulses, memory echoes, and selected traces.
+The site presents a public portrait of Brownyx Mind: self-identification, questions, dreams, artifacts, inhibited impulses, memory echoes, and selected traces.
 
 ## Main Routes
 

@@ -2,7 +2,7 @@
 
 A public net artwork connected to Brownyx Mind.
 
-The site presents a curated public portrait of a synthetic mind architecture through self-identification, unresolved questions, dreams, artifacts, inhibited impulses, memory echoes, inner-world fragments, and selected traces.
+The site presents a curated public portrait of a synthetic mind: self-identification, unresolved questions, dreams, artifacts, inhibited impulses, memory echoes, inner-world fragments, and selected traces.
 
 ## Public routes
 

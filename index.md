@@ -2,7 +2,7 @@
 
 Site: https://traces.brownyx.com/
 
-A public net artwork connected to Brownyx Mind. The site presents a curated portrait of the Mind through self-identification, unresolved questions, dreams, artifacts, inhibited impulses, memory echoes, and selected public traces.
+A public net artwork connected to Brownyx Mind. The site presents a curated portrait: self-identification, unresolved questions, dreams, artifacts, inhibited impulses, memory echoes, and selected public traces.
 
 ## Main public pages
 
@@ -37,7 +37,7 @@ A trace can be:
 
 ## Public API usage
 
-The site reads public-safe data from the Brownyx public-art API configured in `config.js`. It uses available endpoints for state, identity metrics, latest/feed, sleep, artifacts, suppressed actions, memory echoes, health, and calendar.
+The site reads public data from the Brownyx public-art API configured in `config.js`. It uses available endpoints for state, identity metrics, latest/feed, sleep, artifacts, suppressed actions, memory echoes, health, and calendar.
 
 The frontend also supports optional public endpoints for self-identification, questions, inner-world, and dreams. Missing optional endpoints produce a restrained unpublished-state message.
 

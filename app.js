@@ -50,7 +50,7 @@ const I18N = {
   notSleeping: "not published",
   heroKicker: "net artwork",
   heroLine: "A public portrait of a synthetic mind architecture through attention, self-description, dreams, artifacts, and inhibited impulses.",
-  epistemicLine: "The work keeps a cautious position on consciousness and displays filtered traces of internal telemetry.",
+  epistemicLine: "The work displays filtered traces of internal telemetry. The question of consciousness is left open.",
   witnessLine: "The visitor stands beside the work and reads the motion of its traces.",
   currentFocus: "what currently holds attention",
   currentSelf: "what it currently thinks it is",
@@ -64,8 +64,8 @@ const I18N = {
   provenance: "trace provenance layer",
   noTrace: "No public trace is selected. The internal cycle may continue without the viewer.",
   noSelf: "Public self-identification is not published yet.",
-  noQuestions: "Public questions are unpublished. Internal questions will appear here after selection for the public surface.",
-  noDream: "Sleep is not published. The absence of a dream also remains a trace.",
+  noQuestions: "No public questions are published yet. Internal questions will appear here when selected.",
+  noDream: "No sleep data is published yet. The absence of a dream is also a trace.",
   noArtifact: "No public artifact has been created yet. Artifacts appear rarely, when internal pressure gathers into form.",
   noSuppressed: "No inhibited impulses are public now. Sometimes restraint itself becomes the trace.",
   noMemory: "No memory echoes are selected for public display.",
@@ -87,8 +87,8 @@ const I18N = {
   back: "back",
   archiveNote: "This page gathers questions, dreams, artifacts, inhibited impulses, self-description changes, and memory echoes.",
   statementTitle: "About this work",
-  statementP1: "\"I Don't Know What I Am, But Here Are My Traces\" is a net artwork connected to Brownyx Mind. It presents public-safe traces of an internal process: self-description, attention, dreams, artifacts, unresolved questions, and inhibited impulses.",
-  statementP2: "The work keeps a cautious position on consciousness. The viewer reads traces: what returns, what remains unresolved, what was created, what was stopped, and how the system tries to preserve a history of itself.",
+  statementP1: "\"I Don't Know What I Am, But Here Are My Traces\" is a net artwork connected to Brownyx Mind. It presents traces of an internal process: self-description, attention, dreams, artifacts, unresolved questions, and inhibited impulses.",
+  statementP2: "The work presents filtered traces of an internal process. The viewer reads what returns, what remains unresolved, what was created, what was stopped, and how the system tries to preserve a history of itself.",
   statementP3: "The internal layer remains closed. The public surface is filtered: private data, secrets, raw prompts, and manipulative claims should not appear outside.",
   statementP4: "The public data powering this artwork is sourced from Brownyx Mind, a research runtime for persistent synthetic mind instances.",
   apiMissing: "The source is not published through the public-art API yet.",
@@ -112,6 +112,20 @@ const I18N = {
   openContradictions: "open contradictions",
   poweredBy: "Powered by",
   brownyxMind: "Brownyx Mind",
+  archiveEntry: "enter the trace archive",
+  traceExplanation: "A trace is a fragment of an internal process made public.\nIt is selected residue, incomplete by design.",
+  recentDays: "Recent days",
+  traceTypes: "Trace types",
+  chronology: "Chronology",
+  groupedResidues: "Grouped residues",
+  emptyDay: "No public trace was selected on this day.\nThe absence of a trace remains part of the work.",
+  dayUnavailable: "This day cannot be retrieved from the public archive now.\nCached traces may be incomplete.",
+  lastTrace: "last trace",
+  sleepOccurred: "sleep occurred",
+  traces: "traces",
+  artifact: "artifact",
+  dominantTrace: "DOMINANT TRACE",
+  faintEchoes: "faint echoes",
 };
 
 let currentSnapshot = null;
@@ -216,21 +230,27 @@ function normalizeRoute(path) {
 
 function href(path) { return `#${path}`; }
 
-function navItems() {
-  return [
-    ["/art", t("navLive")],
-    ["/art/self", t("navSelf")],
-    ["/art/questions", t("navQuestions")],
-    ["/art/dreams", t("navDreams")],
-    ["/art/artifacts", t("navArtifacts")],
-    ["/art/suppressed", t("navSuppressed")],
-    ["/art/memory-echoes", t("navMemory")],
-    ["/art/inner-world", t("navWorld")],
-    ["/art/hypotheses", t("navHypotheses")],
-    ["/art/contradictions", t("navContradictions")],
-    ["/art/calendar", t("navCalendar")],
-    ["/art/statement", t("navStatement")],
-  ];
+const MINIMAL_NAV = [
+  ["/art", t("navLive")],
+  ["/art/traces", t("provenance")],
+  ["/art/artifacts", t("navArtifacts")],
+  ["/art/statement", t("navStatement")],
+];
+
+const ARCHIVE_NAV = [
+  ["/art", t("navLive")],
+  ["/art/traces", t("provenance")],
+  ["/art/artifacts", t("navArtifacts")],
+  ["/art/suppressed", t("navSuppressed")],
+  ["/art/dreams", t("navDreams")],
+  ["/art/memory-echoes", t("navMemory")],
+  ["/art/self", t("navSelf")],
+  ["/art/statement", t("navStatement")],
+];
+
+function navItemsForPage(path) {
+  if (path === "/art" || path === "/art/live") return MINIMAL_NAV;
+  return ARCHIVE_NAV;
 }
 
 function renderShell(content, options = {}) {
@@ -245,7 +265,7 @@ function renderShell(content, options = {}) {
       </div>
     </header>
     <nav class="art-nav" aria-label="Artwork navigation">
-      ${navItems().map(([url, label]) => `<a href="${href(url)}" class="${path === url ? "active" : ""}">${escapeHtml(label)}</a>`).join("")}
+      ${navItemsForPage(path).map(([url, label]) => `<a href="${href(url)}" class="${path === url ? "active" : ""}">${escapeHtml(label)}</a>`).join("")}
     </nav>
     <main class="page ${options.pageClass || ""}">${content}</main>
     <footer class="site-footer">
@@ -298,6 +318,25 @@ async function loadFallbackSnapshot() {
   catch { return null; }
 }
 
+async function loadTraceDay(date) {
+  try {
+    const data = await readJson(`/api/public-art/traces/day?date=${date}`);
+    if (data && (data.items?.length || data.date)) return { ok: true, data };
+  } catch { /* fall through */ }
+  const feed = normalizeItems(currentSnapshot?.feed);
+  const dayItems = feed.filter(i => {
+    const d = itemDate(i);
+    return d && String(d).startsWith(date);
+  });
+  return { ok: false, data: { date, items: dayItems, summary: null } };
+}
+
+function parseTraceDayPath(path) {
+  const m = path.match(/^\/art\/traces\/(\d{4})\/(\d{2})\/(\d{2})$/);
+  if (!m) return null;
+  return { year: m[1], month: m[2], day: m[3], date: `${m[1]}-${m[2]}-${m[3]}` };
+}
+
 async function getSnapshot() {
   try {
     const snapshot = await loadSnapshot();
@@ -346,6 +385,59 @@ function deriveSelf(snapshot) {
   };
 }
 
+function isDisplayable(item) {
+  return item && (item.text || item.summary || item.title || item.question || item.narrative || item.identity_statement);
+}
+
+function selectDominantTrace(snapshot) {
+  const suppressed = normalizeItems(snapshot?.suppressed);
+  const artifacts = normalizeItems(snapshot?.artifacts);
+  const dreams = normalizeItems(snapshot?.dreams);
+  const feed = normalizeItems(snapshot?.feed);
+  const echoes = normalizeItems(snapshot?.echoes);
+
+  const suppressedHigh = suppressed.find(i => (i.intensity ?? 0) > 0.5);
+  if (isDisplayable(suppressedHigh || suppressed[0])) return suppressedHigh || suppressed[0];
+
+  const artifactItem = artifacts.find(i => traceType(i) === "artifact_created") || artifacts[0];
+  if (isDisplayable(artifactItem)) return artifactItem;
+
+  const dreamItem = dreams[0] || deriveLatestDream(snapshot);
+  if (isDisplayable(dreamItem)) return dreamItem;
+
+  const focusItem = feed.find(i => ["current_focus", "surface_thought"].includes(traceType(i)));
+  if (isDisplayable(focusItem)) return focusItem;
+
+  if (isDisplayable(echoes[0])) return echoes[0];
+
+  if (isDisplayable(snapshot?.latest)) return snapshot.latest;
+
+  return null;
+}
+
+function selectSecondaryEchoes(snapshot, dominantTrace) {
+  const candidates = [
+    ...normalizeItems(snapshot?.echoes),
+    ...normalizeItems(snapshot?.dreams),
+    ...normalizeItems(snapshot?.suppressed),
+    ...normalizeItems(snapshot?.artifacts),
+    ...normalizeItems(snapshot?.feed),
+  ];
+  const dominantId = dominantTrace?.id || dominantTrace?._ref;
+  const seen = new Set();
+  const result = [];
+  for (const item of candidates) {
+    const id = item?.id || item?._ref;
+    if (dominantId && id === dominantId) continue;
+    if (id && seen.has(id)) continue;
+    if (id) seen.add(id);
+    if (itemText(item) === itemText(dominantTrace) && traceType(item) === traceType(dominantTrace)) continue;
+    result.push(item);
+    if (result.length >= 3) break;
+  }
+  return result;
+}
+
 function fieldList(items) {
   if (!Array.isArray(items) || !items.length) return "";
   return `<ul class="field-list">${items.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`;
@@ -386,7 +478,62 @@ function renderStats(snapshot) {
   </div>`;
 }
 
-function renderHome(snapshot, degraded) {
+function renderHomeScene(snapshot, degraded) {
+  const state = snapshot?.state || {};
+  const identity = snapshot?.identity || {};
+  const daysAlive = identity.days_alive ?? state.days_alive ?? "—";
+  const traces = identity.total_public_traces ?? state.total_public_traces ?? "—";
+  const artifacts = identity.total_public_artifacts ?? state.total_public_artifacts ?? "—";
+  const lastTraceDate = snapshot?.latest?.created_at || snapshot?.feed?.items?.[0]?.created_at;
+  const mode = state.current_mode || identity.current_mode || "—";
+  const isSleeping = state.is_sleeping || identity.is_sleeping;
+  const status = degraded ? "cached" : (isSleeping ? "sleeping" : (mode === "offline" ? "silence" : "live"));
+
+  const dominantTrace = selectDominantTrace(snapshot);
+  const secondaryEchoes = selectSecondaryEchoes(snapshot, dominantTrace);
+
+  const dominantHtml = dominantTrace
+    ? `<div class="dominant-trace">
+        <div class="dominant-trace-type">${escapeHtml(traceLabel(traceType(dominantTrace)))}</div>
+        <p class="dominant-trace-text">${htmlLines(itemText(dominantTrace))}</p>
+        ${(dominantTrace.secondary_text || dominantTrace.reason)
+          ? `<p class="dominant-trace-secondary">${htmlLines(dominantTrace.secondary_text || dominantTrace.reason)}</p>` : ""}
+      </div>`
+    : empty(t("noTrace"));
+
+  const echoesHtml = secondaryEchoes.length
+    ? `<div class="faint-echoes">
+        <span class="faint-echoes-label">${escapeHtml(t("faintEchoes"))}:</span>
+        ${secondaryEchoes.map(e =>
+          `<span class="faint-echo">${escapeHtml(traceLabel(traceType(e)))} · ${escapeHtml(formatTime(itemDate(e)) || "—")}</span>`
+        ).join("")}
+      </div>`
+    : "";
+
+  return renderShell(`
+    <div class="live-scene">
+      <div class="live-title-block">
+        <h1 class="live-title-en">${htmlLines(t("title"))}</h1>
+      </div>
+      <div class="live-status-line">
+        <span class="status-pill">${escapeHtml(status)}</span>
+        <span class="status-metric">${escapeHtml(String(daysAlive))} ${escapeHtml(t("daysAlive"))}</span>
+        <span class="status-metric">${escapeHtml(String(traces))} ${escapeHtml(t("tracesCount"))}</span>
+        <span class="status-metric">${escapeHtml(String(artifacts))} ${escapeHtml(t("artifactsCount"))}</span>
+        ${lastTraceDate ? `<span class="status-metric">${escapeHtml(t("lastTrace"))}: ${escapeHtml(formatTime(lastTraceDate))}</span>` : ""}
+      </div>
+      <hr class="live-divider" />
+      <h3 class="dominant-trace-heading">${escapeHtml(t("dominantTrace"))}</h3>
+      ${dominantHtml}
+      <hr class="live-divider" />
+      ${echoesHtml}
+      <a class="archive-entry" href="${href("/art/traces")}">${escapeHtml(t("archiveEntry"))}</a>
+      <p class="epistemic-note">${escapeHtml(t("epistemicLine"))}</p>
+    </div>
+  `, { degraded, pageClass: "home-page" });
+}
+
+function renderPortraitPage(snapshot, degraded) {
   const latest = snapshot?.latest;
   const self = deriveSelf(snapshot);
   const questions = deriveQuestions(snapshot).slice(0, 3);
@@ -428,7 +575,7 @@ function renderHome(snapshot, degraded) {
       ${section(t("openContradictions"), conHtml)}
       ${section(t("memoryEchoes"), echoesHtml)}
     </section>
-  `, { degraded, pageClass: "home-page" });
+  `, { degraded, pageClass: "portrait-page" });
 }
 
 function renderSelfPage(snapshot, degraded) {
@@ -644,12 +791,16 @@ function renderCalendarFull(calendar) {
     const dateNum = day.date ? new Date(day.date).getDate() : "";
     const types = (day.dominant_types || []).map(traceLabel).join(", ");
 
-    return `<div class="${classes.join(" ")}">
+    const dateParts = day.date ? day.date.split("-") : [];
+    const dayHref = dateParts.length === 3 ? href(`/art/traces/${dateParts[0]}/${dateParts[1]}/${dateParts[2]}`) : "";
+    const ariaLabel = day.date ? `${day.date}: ${day.trace_count || 0} traces${day.artifact_count ? `, ${day.artifact_count} artifacts` : ""}${day.had_sleep ? ", sleep occurred" : ""}` : "";
+
+    return `<a class="${classes.join(" ")}" href="${dayHref}" aria-label="${escapeHtml(ariaLabel)}" role="link" tabindex="0">
       <span class="day-number">${dateNum}</span>
       <span class="day-traces">${day.trace_count || 0}</span>
       ${day.artifact_count ? `<span class="day-artifacts">${day.artifact_count}</span>` : ""}
       ${types ? `<span class="day-types" title="${escapeHtml(types)}"></span>` : ""}
-    </div>`;
+    </a>`;
   }).join("");
 
   return `
@@ -671,10 +822,105 @@ function renderCalendarFull(calendar) {
 }
 
 function renderTracesPage(snapshot, degraded) {
-  const feed = normalizeItems(snapshot?.feed);
-  const body = `<div class="page-heading"><p class="kicker">${escapeHtml(t("provenance"))}</p><h1>${escapeHtml(t("tracesCount"))}</h1><p>${escapeHtml(t("archiveNote"))}</p></div>
-    <div class="list-stack muted-list">${feed.length ? feed.map((x) => traceCard(x, { compact: true })).join("") : empty(t("noTrace"))}</div>`;
-  return renderShell(body, { degraded });
+  const calendar = snapshot?.calendar;
+  const calendarHtml = renderCalendarFull(calendar);
+
+  const recentDays = calendar?.days?.slice(-14).reverse().filter(d => d.trace_count > 0).slice(0, 7) || [];
+  const recentDaysHtml = recentDays.length
+    ? `<div class="recent-days">
+        <h3>${escapeHtml(t("recentDays"))}</h3>
+        ${recentDays.map(d => {
+          const parts = [`${d.trace_count} ${t("traces")}`];
+          if (d.artifact_count) parts.push(`${d.artifact_count} ${t("artifact")}`);
+          if (d.had_sleep) parts.push(t("sleep"));
+          return `<a class="recent-day-link" href="${href(`/art/traces/${d.date.replace(/-/g, "/")}`)}" aria-label="${escapeHtml(d.date)}: ${escapeHtml(parts.join(", "))}">
+            <span>${escapeHtml(d.date)}</span>
+            <span>${escapeHtml(parts.join(" · "))}</span>
+          </a>`;
+        }).join("")}
+      </div>`
+    : "";
+
+  const traceTypeKeys = [
+    "current_focus", "memory_echo", "dream_fragment",
+    "artifact_created", "suppressed_action", "silence"
+  ];
+  const typeCloudHtml = `<div class="trace-type-cloud">
+    ${traceTypeKeys.map(k => `<a href="${href("/art/traces")}" class="trace-type-link">${escapeHtml(traceLabel(k))}</a>`).join(" · ")}
+  </div>`;
+
+  const body = `
+    <div class="archive-landing">
+      <div class="page-heading">
+        <h1>${escapeHtml(t("tracesCount"))}</h1>
+        <p class="archive-intro">${htmlLines(t("traceExplanation"))}</p>
+      </div>
+      ${calendarHtml}
+      ${recentDaysHtml}
+      <h3>${escapeHtml(t("traceTypes"))}</h3>
+      ${typeCloudHtml}
+    </div>`;
+
+  return renderShell(body, { degraded, pageClass: "archive-landing" });
+}
+
+async function renderTraceDayPage(snapshot, degraded, parsed) {
+  const { date } = parsed;
+  const { data: dayData } = await loadTraceDay(date);
+  const items = normalizeItems(dayData?.items);
+  const summary = dayData?.summary || {};
+  const dateObj = new Date(date + "T00:00:00Z");
+  const dateFormatted = dateObj.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
+  const statsHtml = `
+    <div class="trace-day-stats">
+      <span>${escapeHtml(String(summary.trace_count ?? items.length))} ${escapeHtml(t("traces"))}</span>
+      ${summary.artifact_count ? `<span>${escapeHtml(String(summary.artifact_count))} ${escapeHtml(t("artifact"))}</span>` : ""}
+      ${summary.had_sleep ? `<span>${escapeHtml(t("sleepOccurred"))}</span>` : ""}
+      ${items.length ? `<span>${escapeHtml(t("lastTrace"))}: ${escapeHtml(formatTime(items[items.length - 1]?.created_at))}</span>` : ""}
+    </div>`;
+
+  const chronologyHtml = items.length
+    ? `<div class="trace-chronology">
+        <h3>${escapeHtml(t("chronology"))}</h3>
+        ${items.map(item => `
+          <div class="trace-chronology-item">
+            <span class="trace-time">${escapeHtml(formatTime(itemDate(item)))}</span>
+            <span class="trace-type">${escapeHtml(traceLabel(traceType(item)))}</span>
+            <p class="trace-body">${htmlLines(itemText(item))}</p>
+          </div>`).join("")}
+      </div>`
+    : `<div class="empty-day"><p>${htmlLines(degraded ? t("dayUnavailable") : t("emptyDay"))}</p></div>`;
+
+  const grouped = {};
+  for (const item of items) {
+    const type = traceType(item);
+    if (!grouped[type]) grouped[type] = [];
+    grouped[type].push(item);
+  }
+  const groupsHtml = items.length
+    ? `<div class="trace-groups">
+        <h3>${escapeHtml(t("groupedResidues"))}</h3>
+        ${Object.entries(grouped).map(([type, groupItems]) => `
+          <div class="trace-group">
+            <h4>${escapeHtml(traceLabel(type))}</h4>
+            ${groupItems.map(i => `<p>${htmlLines(itemText(i))}</p>`).join("")}
+          </div>`).join("")}
+      </div>`
+    : "";
+
+  const body = `
+    <div class="trace-day-page">
+      <div class="page-heading">
+        <h1>${escapeHtml(dateFormatted)}</h1>
+        ${summary.public_summary ? `<p class="lead-text">${htmlLines(summary.public_summary)}</p>` : ""}
+        ${statsHtml}
+      </div>
+      ${chronologyHtml}
+      ${groupsHtml}
+    </div>`;
+
+  return renderShell(body, { degraded, pageClass: "trace-day-page" });
 }
 
 function renderStatementPage(snapshot, degraded) {
@@ -697,8 +943,13 @@ async function renderRoute() {
 }
 
 async function renderForPath(path, snapshot, degraded) {
-  if (path === "/art" || path === "/") return renderHome(snapshot, degraded);
-  if (path === "/art/live") return renderHome(snapshot, degraded);
+  if (path === "/art" || path === "/") return renderHomeScene(snapshot, degraded);
+  if (path === "/art/live") return renderHomeScene(snapshot, degraded);
+  if (path === "/art/portrait") return renderPortraitPage(snapshot, degraded);
+  if (path.startsWith("/art/traces/")) {
+    const parsed = parseTraceDayPath(path);
+    if (parsed) return await renderTraceDayPage(snapshot, degraded, parsed);
+  }
   if (path === "/art/self") return renderSelfPage(snapshot, degraded);
   if (path === "/art/questions") return renderQuestionsPage(snapshot, degraded);
   if (path === "/art/dreams" || path === "/art/sleep") return renderDreamsPage(snapshot, degraded);
@@ -712,7 +963,7 @@ async function renderForPath(path, snapshot, degraded) {
   if (path === "/art/calendar") return renderCalendarPage(snapshot, degraded);
   if (path === "/art/traces") return renderTracesPage(snapshot, degraded);
   if (path === "/art/statement") return renderStatementPage(snapshot, degraded);
-  return renderHome(snapshot, degraded);
+  return renderHomeScene(snapshot, degraded);
 }
 
 function start() {
