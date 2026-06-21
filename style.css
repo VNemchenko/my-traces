@@ -682,17 +682,6 @@ h1, h2, h3 {
   margin: 0 auto;
   padding: 40px 0 20px;
 }
-.live-title-block {
-  text-align: center;
-  margin-bottom: 40px;
-}
-.live-title-en {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.8rem, 4vw, 3.2rem);
-  line-height: 1.1;
-  margin: 0;
-  white-space: pre-line;
-}
 .live-status-line {
   display: flex;
   flex-wrap: wrap;

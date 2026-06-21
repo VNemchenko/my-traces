@@ -130,6 +130,7 @@ const I18N = {
 
 let currentSnapshot = null;
 let currentRoutePath = null;
+let isRendering = false;
 
 function t(key) {
   return I18N[key] ?? key;
@@ -535,9 +536,6 @@ function renderHomeScene(snapshot, degraded) {
 
   return renderShell(`
     <div class="live-scene">
-      <div class="live-title-block">
-        <h1 class="live-title-en">${htmlLines(t("title"))}</h1>
-      </div>
       <div class="live-status-line">
         <span class="status-pill">${escapeHtml(status)}</span>
         <span class="status-metric">${escapeHtml(String(daysAlive))} ${escapeHtml(t("daysAlive"))}</span>
@@ -968,14 +966,35 @@ function renderStatementPage(snapshot, degraded) {
   return renderShell(body, { degraded });
 }
 
-async function renderRoute() {
-  currentRoutePath = routeFromLocation();
-  applyLanguageShell();
-  const root = document.querySelector("#app-root");
-  if (!root) return;
-  if (currentSnapshot) root.innerHTML = await renderForPath(currentRoutePath, currentSnapshot, true);
-  const { snapshot, degraded } = await getSnapshot();
-  root.innerHTML = await renderForPath(currentRoutePath, snapshot, degraded);
+let isDegraded = false;
+
+async function renderRoute(forceRefresh = false) {
+  if (isRendering) return;
+  isRendering = true;
+  try {
+    currentRoutePath = routeFromLocation();
+    applyLanguageShell();
+    const root = document.querySelector("#app-root");
+    if (!root) return;
+
+    const isLivePage = ["/art", "/art/live"].includes(currentRoutePath);
+
+    let snapshot;
+    if (currentSnapshot && !forceRefresh && (!isLivePage || isDegraded)) {
+      snapshot = currentSnapshot;
+      root.innerHTML = await renderForPath(currentRoutePath, snapshot, isDegraded);
+    } else {
+      if (currentSnapshot) root.innerHTML = await renderForPath(currentRoutePath, currentSnapshot, true);
+      const result = await getSnapshot();
+      snapshot = result.snapshot;
+      isDegraded = result.degraded;
+      root.innerHTML = await renderForPath(currentRoutePath, snapshot, isDegraded);
+    }
+
+    window.scrollTo({ top: 0, behavior: "instant" });
+  } finally {
+    isRendering = false;
+  }
 }
 
 async function renderForPath(path, snapshot, degraded) {
@@ -1003,11 +1022,32 @@ async function renderForPath(path, snapshot, degraded) {
 }
 
 function start() {
-  window.addEventListener("hashchange", renderRoute);
+  // Intercept all nav link clicks — handle navigation manually
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest(".art-nav a");
+    if (!link) return;
+    const href = link.getAttribute("href");
+    if (!href || !href.startsWith("#")) return;
+
+    e.preventDefault();
+    const newPath = normalizeRoute(href.replace(/^#/, ""));
+
+    if (newPath === currentRoutePath) {
+      // Same page — just re-render from cache
+      renderRoute(false);
+    } else {
+      // Different page — update hash, which triggers renderRoute
+      location.hash = href.replace(/^#/, "");
+    }
+  });
+
+  // Handle browser back/forward
+  window.addEventListener("hashchange", () => renderRoute(false));
+
   renderRoute();
   setInterval(() => {
     const route = routeFromLocation();
-    if (["/art", "/art/live"].includes(route)) renderRoute();
+    if (["/art", "/art/live"].includes(route)) renderRoute(true);
   }, POLL_INTERVAL_MS);
 }
 
