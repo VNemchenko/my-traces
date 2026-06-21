@@ -83,6 +83,10 @@ button, select { font: inherit; }
   mask-image: linear-gradient(to bottom, black, transparent 94%);
 }
 
+html {
+  overflow-y: scroll;
+}
+
 #app-root {
   width: min(1360px, calc(100vw - 40px));
   margin: 0 auto;
@@ -429,7 +433,6 @@ artifact-card,
 .list-stack {
   display: grid;
   gap: 14px;
-  max-width: 980px;
 }
 
 .artifact-grid,
