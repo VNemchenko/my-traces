@@ -535,7 +535,9 @@ function renderHomeScene(snapshot, degraded) {
     : "";
 
   return renderShell(`
-    <div class="live-scene">
+    <div class="page-heading">
+      <p class="kicker">${escapeHtml(t("heroKicker"))}</p>
+      <h1>${escapeHtml(t("navLive"))}</h1>
       <div class="live-status-line">
         <span class="status-pill">${escapeHtml(status)}</span>
         <span class="status-metric">${escapeHtml(String(daysAlive))} ${escapeHtml(t("daysAlive"))}</span>
@@ -543,14 +545,14 @@ function renderHomeScene(snapshot, degraded) {
         <span class="status-metric">${escapeHtml(String(artifacts))} ${escapeHtml(t("artifactsCount"))}</span>
         ${lastTraceDate ? `<span class="status-metric">${escapeHtml(t("lastTrace"))}: ${escapeHtml(formatTime(lastTraceDate))}</span>` : ""}
       </div>
-      <hr class="live-divider" />
-      <h3 class="dominant-trace-heading">${escapeHtml(t("dominantTrace"))}</h3>
-      ${dominantHtml}
-      <hr class="live-divider" />
-      ${echoesHtml}
-      <a class="archive-entry" href="${href("/art/traces")}">${escapeHtml(t("archiveEntry"))}</a>
-      <p class="epistemic-note">${escapeHtml(t("epistemicLine"))}</p>
     </div>
+    <hr class="live-divider" />
+    <h3 class="dominant-trace-heading">${escapeHtml(t("dominantTrace"))}</h3>
+    ${dominantHtml}
+    <hr class="live-divider" />
+    ${echoesHtml}
+    <a class="archive-entry" href="${href("/art/traces")}">${escapeHtml(t("archiveEntry"))}</a>
+    <p class="epistemic-note">${escapeHtml(t("epistemicLine"))}</p>
   `, { degraded, pageClass: "home-page" });
 }
 
@@ -577,38 +579,81 @@ function renderPortraitPage(snapshot, degraded) {
   const conHtml = contradictions.length ? contradictions.map(renderContradictionCard).join("") : empty(t("noContradictions"));
 
   return renderShell(`
-    <section class="hero-block">
+    <div class="page-heading">
       <p class="kicker">${escapeHtml(t("heroKicker"))}</p>
-      <h1>${htmlLines(t("title"))}</h1>
+      <h1>${escapeHtml(t("title"))}</h1>
       <p class="hero-line">${escapeHtml(t("heroLine"))}</p>
       <p class="witness-line">${escapeHtml(t("witnessLine"))}</p>
       ${renderStats(snapshot)}
-    </section>
+    </div>
     <section class="portrait-grid">
-      ${section(t("currentFocus"), focusHtml, "span-2 focus-card")}
-      ${section(t("currentSelf"), selfHtml)}
-      ${section(t("unanswered"), qHtml)}
-      ${section(t("lastDream"), dreamHtml)}
-      ${section(t("lastArtifact"), artifactHtml)}
-      ${section(t("stoppedImpulse"), suppressedHtml)}
-      ${section(t("innerWorld"), worldHtml)}
-      ${section(t("openHypotheses"), hypHtml)}
-      ${section(t("openContradictions"), conHtml)}
-      ${section(t("memoryEchoes"), echoesHtml)}
+      <article class="span-2">
+        <h3>${escapeHtml(t("currentFocus"))}</h3>
+        ${focusHtml}
+      </article>
+      <article>
+        <h3>${escapeHtml(t("currentSelf"))}</h3>
+        ${selfHtml}
+      </article>
+      <article>
+        <h3>${escapeHtml(t("unanswered"))}</h3>
+        ${qHtml}
+      </article>
+      <article>
+        <h3>${escapeHtml(t("lastDream"))}</h3>
+        ${dreamHtml}
+      </article>
+      <article>
+        <h3>${escapeHtml(t("lastArtifact"))}</h3>
+        ${artifactHtml}
+      </article>
+      <article>
+        <h3>${escapeHtml(t("stoppedImpulse"))}</h3>
+        ${suppressedHtml}
+      </article>
+      <article>
+        <h3>${escapeHtml(t("innerWorld"))}</h3>
+        ${worldHtml}
+      </article>
+      <article>
+        <h3>${escapeHtml(t("openHypotheses"))}</h3>
+        ${hypHtml}
+      </article>
+      <article>
+        <h3>${escapeHtml(t("openContradictions"))}</h3>
+        ${conHtml}
+      </article>
+      <article>
+        <h3>${escapeHtml(t("memoryEchoes"))}</h3>
+        ${echoesHtml}
+      </article>
     </section>
   `, { degraded, pageClass: "portrait-page" });
 }
 
 function renderSelfPage(snapshot, degraded) {
   const self = deriveSelf(snapshot);
-  const body = self ? `
-    <div class="page-heading"><p class="kicker">${escapeHtml(t("navSelf"))}</p><h1>${escapeHtml(t("currentSelf"))}</h1></div>
-    ${section(t("currentSelf"), `<p class="lead-text">${htmlLines(self.identity_statement || self.text || t("noSelf"))}</p>${self.delta_summary ? `<p class="secondary">${htmlLines(self.delta_summary)}</p>` : ""}${self.change_reason ? `<p class="secondary"><b>${escapeHtml(t("reason"))}:</b> ${htmlLines(self.change_reason)}</p>` : ""}`)}
-    <div class="triple-grid">
-      ${section(t("capabilities"), self.capabilities?.length ? fieldList(self.capabilities) : empty(t("emptyValue")))}
-      ${section(t("limitations"), self.limitations?.length ? fieldList(self.limitations) : empty(t("emptyValue")))}
-      ${section(t("stableTraits"), self.stable_traits?.length ? fieldList(self.stable_traits) : empty(t("emptyValue")))}
-    </div>` : empty(t("noSelf"));
+  if (!self) return renderShell(empty(t("noSelf")), { degraded });
+  const body = `<div class="page-heading"><p class="kicker">${escapeHtml(t("navSelf"))}</p><h1>${escapeHtml(t("currentSelf"))}</h1></div>
+    <div class="list-stack">
+      <p class="lead-text">${htmlLines(self.identity_statement || self.text || t("noSelf"))}</p>
+      ${self.delta_summary ? `<p class="secondary">${htmlLines(self.delta_summary)}</p>` : ""}
+      ${self.change_reason ? `<p class="secondary"><b>${escapeHtml(t("reason"))}:</b> ${htmlLines(self.change_reason)}</p>` : ""}
+    </div>
+    <div class="detail-layout">
+      <div>
+        <h3>${escapeHtml(t("capabilities"))}</h3>
+        ${self.capabilities?.length ? `<ul class="field-list">${self.capabilities.map(c => `<li>${escapeHtml(c)}</li>`).join("")}</ul>` : empty(t("emptyValue"))}
+      </div>
+      <div>
+        <h3>${escapeHtml(t("limitations"))}</h3>
+        ${self.limitations?.length ? `<ul class="field-list">${self.limitations.map(l => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` : empty(t("emptyValue"))}
+      </div>
+      <div>
+        <h3>${escapeHtml(t("stableTraits"))}</h3>
+        ${self.stable_traits?.length ? `<ul class="field-list">${self.stable_traits.map(t => `<li>${escapeHtml(t)}</li>`).join("")}</ul>` : empty(t("emptyValue"))}
+      </div>
+    </div>`;
   return renderShell(body, { degraded });
 }
 
@@ -683,10 +728,22 @@ async function renderArtifactDetail(snapshot, degraded, artifactId) {
   const body = `<a class="back-link" href="${href("/art/artifacts")}">← ${escapeHtml(t("back"))}</a>
     <div class="page-heading"><p class="kicker">${escapeHtml(t("navArtifacts"))}</p><h1>${escapeHtml(detail?.title || "Artifact")}</h1></div>
     <div class="detail-layout">
-      ${section(t("summary"), detail?.summary ? `<p class="lead-text">${htmlLines(detail.summary)}</p>` : empty(t("noArtifact")))}
-      ${section(t("reason"), detail?.creation_reason ? `<p>${htmlLines(detail.creation_reason)}</p>` : empty(t("emptyValue")))}
-      ${section(t("drives"), driveRows ? `<div class="state-list">${driveRows}</div>` : empty(t("emptyValue")))}
-      ${section(t("preview"), detail?.preview ? `<pre class="artifact-preview">${escapeHtml(detail.preview)}</pre>` : empty(t("emptyValue")), "span-2")}
+      <div>
+        <h3>${escapeHtml(t("summary"))}</h3>
+        ${detail?.summary ? `<p class="lead-text">${htmlLines(detail.summary)}</p>` : empty(t("noArtifact"))}
+      </div>
+      <div>
+        <h3>${escapeHtml(t("reason"))}</h3>
+        ${detail?.creation_reason ? `<p>${htmlLines(detail.creation_reason)}</p>` : empty(t("emptyValue"))}
+      </div>
+      <div>
+        <h3>${escapeHtml(t("drives"))}</h3>
+        ${driveRows ? `<div class="state-list">${driveRows}</div>` : empty(t("emptyValue"))}
+      </div>
+      <div class="span-2">
+        <h3>${escapeHtml(t("preview"))}</h3>
+        ${detail?.preview ? `<pre class="artifact-preview">${escapeHtml(detail.preview)}</pre>` : empty(t("emptyValue"))}
+      </div>
     </div>`;
   return renderShell(body, { degraded });
 }
@@ -728,7 +785,8 @@ function renderWorldFull(world) {
   const nodes = normalizeItems(world.nodes);
   if (places.length) return `<div class="world-grid">${places.map(renderWorldPlace).join("")}</div>`;
   if (nodes.length) return `<div class="world-map">${nodes.map((n) => renderWorldNodeCard(n)).join("")}</div>`;
-  return section(t("innerWorld"), world.summary ? `<p>${htmlLines(world.summary)}</p>` : empty(t("noWorld")));
+  if (world.summary) return `<div class="list-stack"><p class="lead-text">${htmlLines(world.summary)}</p></div>`;
+  return empty(t("noWorld"));
 }
 
 function renderWorldNodeCard(n) {
@@ -958,11 +1016,22 @@ async function renderTraceDayPage(snapshot, degraded, parsed) {
 }
 
 function renderStatementPage(snapshot, degraded) {
-  const body = `<div class="statement-page">
-    <div class="page-heading"><p class="kicker">${escapeHtml(t("navStatement"))}</p><h1>${escapeHtml(t("statementTitle"))}</h1></div>
-    ${section(t("title"), `<p class="lead-text">${htmlLines(t("statementP1"))}</p><p>${htmlLines(t("statementP2"))}</p><p>${htmlLines(t("statementP3"))}</p><p>${htmlLines(t("statementP4"))}</p>`)}
-    ${section(t("publicSurface"), `<ul class="field-list"><li>${escapeHtml(t("currentSelf"))}</li><li>${escapeHtml(t("unanswered"))}</li><li>${escapeHtml(t("lastDream"))}</li><li>${escapeHtml(t("lastArtifact"))}</li><li>${escapeHtml(t("stoppedImpulse"))}</li><li>${escapeHtml(t("innerWorld"))}</li></ul>`)}
-  </div>`;
+  const body = `<div class="page-heading"><p class="kicker">${escapeHtml(t("navStatement"))}</p><h1>${escapeHtml(t("statementTitle"))}</h1></div>
+    <div class="list-stack">
+      <p class="lead-text">${htmlLines(t("statementP1"))}</p>
+      <p>${htmlLines(t("statementP2"))}</p>
+      <p>${htmlLines(t("statementP3"))}</p>
+      <p>${htmlLines(t("statementP4"))}</p>
+    </div>
+    <h3>${escapeHtml(t("publicSurface"))}</h3>
+    <ul class="field-list">
+      <li>${escapeHtml(t("currentSelf"))}</li>
+      <li>${escapeHtml(t("unanswered"))}</li>
+      <li>${escapeHtml(t("lastDream"))}</li>
+      <li>${escapeHtml(t("lastArtifact"))}</li>
+      <li>${escapeHtml(t("stoppedImpulse"))}</li>
+      <li>${escapeHtml(t("innerWorld"))}</li>
+    </ul>`;
   return renderShell(body, { degraded });
 }
 
