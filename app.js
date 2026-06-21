@@ -192,6 +192,21 @@ function normalizeItems(data) {
   return data.items || data.questions || data.traces || data.nodes || [];
 }
 
+function dedupTraces(items) {
+  const seen = new Set();
+  const result = [];
+  let dupCount = 0;
+  for (const item of items) {
+    const text = itemText(item);
+    const title = itemTitle(item);
+    const key = `${traceType(item)}|${title}|${text}`.slice(0, 200);
+    if (seen.has(key)) { dupCount++; continue; }
+    seen.add(key);
+    result.push(item);
+  }
+  return { items: result, dupCount };
+}
+
 function traceType(item) { return item?.type || item?.trace_type || item?.display_type || "trace"; }
 function traceLabel(type) { return TRACE_TYPE_LABELS[type] || String(type || "trace").replace(/_/g, " "); }
 function firstText(...values) { return values.find((v) => typeof v === "string" && v.trim()) || ""; }
@@ -230,27 +245,30 @@ function normalizeRoute(path) {
 
 function href(path) { return `#${path}`; }
 
-const MINIMAL_NAV = [
-  ["/art", t("navLive")],
-  ["/art/traces", t("provenance")],
-  ["/art/artifacts", t("navArtifacts")],
-  ["/art/statement", t("navStatement")],
+const NAV_ITEMS = [
+  ["/art", t("navLive"), "live"],
+  ["/art/traces", t("provenance"), "traces"],
+  ["/art/artifacts", t("navArtifacts"), "artifacts"],
+  ["/art/suppressed", t("navSuppressed"), "suppressed"],
+  ["/art/dreams", t("navDreams"), "dreams"],
+  ["/art/memory-echoes", t("navMemory"), "echoes"],
+  ["/art/self", t("navSelf"), "self"],
+  ["/art/statement", t("navStatement"), "statement"],
 ];
 
-const ARCHIVE_NAV = [
-  ["/art", t("navLive")],
-  ["/art/traces", t("provenance")],
-  ["/art/artifacts", t("navArtifacts")],
-  ["/art/suppressed", t("navSuppressed")],
-  ["/art/dreams", t("navDreams")],
-  ["/art/memory-echoes", t("navMemory")],
-  ["/art/self", t("navSelf")],
-  ["/art/statement", t("navStatement")],
-];
+function navItemsForPage() {
+  return NAV_ITEMS;
+}
 
-function navItemsForPage(path) {
-  if (path === "/art" || path === "/art/live") return MINIMAL_NAV;
-  return ARCHIVE_NAV;
+function sectionHasData(key) {
+  if (!currentSnapshot) return true;
+  if (key === "live" || key === "traces" || key === "statement") return true;
+  if (key === "artifacts") return normalizeItems(currentSnapshot?.artifacts).length > 0;
+  if (key === "suppressed") return normalizeItems(currentSnapshot?.suppressed).length > 0;
+  if (key === "dreams") return normalizeItems(currentSnapshot?.dreams).length > 0 || currentSnapshot?.sleep?.dream_fragment;
+  if (key === "echoes") return normalizeItems(currentSnapshot?.echoes).length > 0;
+  if (key === "self") return !!(currentSnapshot?.self?.identity_statement || currentSnapshot?.self?.text);
+  return true;
 }
 
 function renderShell(content, options = {}) {
@@ -265,9 +283,14 @@ function renderShell(content, options = {}) {
       </div>
     </header>
     <nav class="art-nav" aria-label="Artwork navigation">
-      ${navItemsForPage(path).map(([url, label]) => `<a href="${href(url)}" class="${path === url ? "active" : ""}">${escapeHtml(label)}</a>`).join("")}
+      ${navItemsForPage().map(([url, label, key]) => {
+        const isActive = path === url;
+        const hasData = sectionHasData(key);
+        const cls = [isActive ? "active" : "", !hasData ? "nav-dimmed" : ""].filter(Boolean).join(" ");
+        return `<a href="${href(url)}" class="${cls}">${escapeHtml(label)}</a>`;
+      }).join("")}
     </nav>
-    <main class="page ${options.pageClass || ""}">${content}</main>
+    <main id="main-content" class="page ${options.pageClass || ""}" tabindex="-1">${content}</main>
     <footer class="site-footer">
       <span>${escapeHtml(t("poweredBy"))} <a href="https://brownyx.com" target="_blank" rel="noopener">${escapeHtml(t("brownyxMind"))}</a></span>
       <span>${escapeHtml(t("epistemicLine"))}</span>
@@ -696,7 +719,7 @@ function renderWorldTeaser(world) {
   const places = normalizeItems(world.places || world.locations);
   const nodes = normalizeItems(world.nodes);
   if (places.length) return places.slice(0, 3).map(renderWorldPlace).join("");
-  if (nodes.length) return nodes.slice(0, 4).map((n) => `<p class="world-node"><b>${escapeHtml(n.name || n.title || n.node_type || "node")}</b>${n.summary ? `<br>${htmlLines(n.summary)}` : ""}</p>`).join("");
+  if (nodes.length) return `<div class="world-map">${nodes.slice(0, 4).map((n) => renderWorldNodeCard(n)).join("")}</div>`;
   if (world.summary) return `<p>${htmlLines(world.summary)}</p>`;
   return empty(t("noWorld"));
 }
@@ -706,8 +729,20 @@ function renderWorldFull(world) {
   const places = normalizeItems(world.places || world.locations);
   const nodes = normalizeItems(world.nodes);
   if (places.length) return `<div class="world-grid">${places.map(renderWorldPlace).join("")}</div>`;
-  if (nodes.length) return `<div class="world-grid">${nodes.map((n) => section(n.name || n.node_type || "node", `<p>${htmlLines(n.summary || "")}</p><p class="meta-line">${escapeHtml(n.status || "")} · ${escapeHtml(String(n.salience ?? ""))}</p>`)).join("")}</div>`;
+  if (nodes.length) return `<div class="world-map">${nodes.map((n) => renderWorldNodeCard(n)).join("")}</div>`;
   return section(t("innerWorld"), world.summary ? `<p>${htmlLines(world.summary)}</p>` : empty(t("noWorld")));
+}
+
+function renderWorldNodeCard(n) {
+  const name = escapeHtml(n.name || n.title || n.node_type || "node");
+  const summary = n.summary ? `<p>${htmlLines(n.summary)}</p>` : "";
+  const status = n.status ? `<span class="world-node-type">${escapeHtml(n.status)}</span>` : "";
+  const salience = typeof n.salience === "number" ? `<span class="world-node-salience">salience ${(n.salience * 100).toFixed(0)}%</span>` : "";
+  return `<div class="world-node-card">
+    <h3>${name}</h3>
+    ${summary}
+    <div class="world-node-meta">${status}${salience}</div>
+  </div>`;
 }
 
 function renderWorldPlace(place) {
@@ -795,7 +830,7 @@ function renderCalendarFull(calendar) {
     const dayHref = dateParts.length === 3 ? href(`/art/traces/${dateParts[0]}/${dateParts[1]}/${dateParts[2]}`) : "";
     const ariaLabel = day.date ? `${day.date}: ${day.trace_count || 0} traces${day.artifact_count ? `, ${day.artifact_count} artifacts` : ""}${day.had_sleep ? ", sleep occurred" : ""}` : "";
 
-    return `<a class="${classes.join(" ")}" href="${dayHref}" aria-label="${escapeHtml(ariaLabel)}" role="link" tabindex="0">
+    return `<a class="${classes.join(" ")}" href="${dayHref}" title="${escapeHtml(ariaLabel)}">
       <span class="day-number">${dateNum}</span>
       <span class="day-traces">${day.trace_count || 0}</span>
       ${day.artifact_count ? `<span class="day-artifacts">${day.artifact_count}</span>` : ""}
@@ -867,14 +902,15 @@ function renderTracesPage(snapshot, degraded) {
 async function renderTraceDayPage(snapshot, degraded, parsed) {
   const { date } = parsed;
   const { data: dayData } = await loadTraceDay(date);
-  const items = normalizeItems(dayData?.items);
+  const rawItems = normalizeItems(dayData?.items);
+  const { items, dupCount } = dedupTraces(rawItems);
   const summary = dayData?.summary || {};
   const dateObj = new Date(date + "T00:00:00Z");
   const dateFormatted = dateObj.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
   const statsHtml = `
     <div class="trace-day-stats">
-      <span>${escapeHtml(String(summary.trace_count ?? items.length))} ${escapeHtml(t("traces"))}</span>
+      <span>${escapeHtml(String(summary.trace_count ?? items.length))} ${escapeHtml(t("traces"))}${dupCount ? ` (${dupCount} similar hidden)` : ""}</span>
       ${summary.artifact_count ? `<span>${escapeHtml(String(summary.artifact_count))} ${escapeHtml(t("artifact"))}</span>` : ""}
       ${summary.had_sleep ? `<span>${escapeHtml(t("sleepOccurred"))}</span>` : ""}
       ${items.length ? `<span>${escapeHtml(t("lastTrace"))}: ${escapeHtml(formatTime(items[items.length - 1]?.created_at))}</span>` : ""}
