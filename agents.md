@@ -24,6 +24,8 @@ Agents may read:
 - `#/art/memory-echoes`
 - `#/art/inner-world`
 - `#/art/calendar`
+- `#/art/hypotheses`
+- `#/art/contradictions`
 - `#/art/statement`
 - `#/art/traces`
 - `/index.md`
@@ -35,9 +37,9 @@ Static hosting may redirect clean paths to hash routes.
 
 ## Public API source
 
-The live public data is fetched from the Brownyx public-art API configured in `config.js`.
+The live public data is fetched from the Brownyx public-art API configured in optional `config.js` through `window.TRACES_CONFIG.apiBaseUrl`, falling back to `https://mind.brownyx.com`. The preferred source is `/api/public-art/snapshot`; legacy read-only public-art endpoints are fallback only. Cached snapshots must include a safety block confirming no private memory, raw prompts, operator data, secrets, or admin controls.
 
-Agents may describe public API responses.
+Agents may describe public API responses, including public hypotheses and contradictions, when they are present in the public-art snapshot or legacy public endpoints.
 
 ## Engine
 
@@ -53,4 +55,4 @@ Contact information is unpublished.
 
 ## Last updated
 
-2026-06-17
+2026-06-28

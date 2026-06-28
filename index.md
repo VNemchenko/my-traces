@@ -15,6 +15,8 @@ A public net artwork connected to Brownyx Mind. The site presents a curated port
 - Memory echoes: `#/art/memory-echoes`
 - Inner world: `#/art/inner-world`
 - Calendar: `#/art/calendar`
+- Hypotheses: `#/art/hypotheses`
+- Contradictions: `#/art/contradictions`
 - Statement: `#/art/statement`
 - Trace provenance: `#/art/traces`
 
@@ -37,13 +39,13 @@ A trace can be:
 
 ## Public API usage
 
-The site reads public data from the Brownyx public-art API configured in `config.js`. It uses available endpoints for state, identity metrics, latest/feed, sleep, artifacts, suppressed actions, memory echoes, health, and calendar.
+The site reads public data from the Brownyx public-art API configured in optional `config.js` through `window.TRACES_CONFIG.apiBaseUrl`, falling back to `https://mind.brownyx.com`. It prefers `/api/public-art/snapshot`, which includes state, identity metrics, latest/feed, sleep, artifacts, suppressed actions, memory echoes, self, questions, inner-world projection, dreams, hypotheses, contradictions, health, calendar, and safety metadata.
 
-The frontend also supports optional public endpoints for self-identification, questions, inner-world, and dreams. Missing optional endpoints produce a restrained unpublished-state message.
+If the snapshot endpoint is unavailable, the frontend falls back to legacy public-art endpoints for the same public-safe data classes. Missing legacy endpoints produce a restrained unpublished-state message.
 
 ## Offline snapshot
 
-If the public API is temporarily unavailable, the site first uses the last snapshot from `localStorage`, then the static `/assets/fallback-snapshot.json`.
+If the public API is temporarily unavailable, the site first uses the last snapshot from `localStorage` only when its safety block confirms it contains no private memory, raw prompts, operator data, secrets, or admin controls; then it uses the static `/assets/fallback-snapshot.json`.
 
 ## Author
 

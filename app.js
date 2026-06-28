@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://mind.brownyx.com";
+const API_BASE_URL = window.TRACES_CONFIG?.apiBaseUrl || "https://mind.brownyx.com";
 const POLL_INTERVAL_MS = 30000;
 const FALLBACK_SNAPSHOT_URL = "/assets/fallback-snapshot.json";
 const CACHE_KEY = "traces.snapshot.v1";
@@ -156,6 +156,47 @@ async function readStaticJson(url) {
   if (!response.ok) throw new Error(`Static JSON returned ${response.status}`);
   return response.json();
 }
+function publicSafetyAllowsCache(snapshot) {
+  const safety = snapshot?.safety || snapshot?.health?.safety || snapshot?.state?.safety;
+  if (!safety) return false;
+  return safety.contains_private_memory === false
+    && safety.contains_raw_prompts === false
+    && safety.contains_operator_data === false
+    && safety.contains_secrets === false
+    && safety.contains_admin_controls === false;
+}
+
+function normalizeSnapshotPayload(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  return {
+    state: payload.state || {},
+    identity: payload.identity || {},
+    latest: payload.latest || null,
+    feed: payload.feed || { items: [] },
+    sleep: payload.sleep || {},
+    artifacts: payload.artifacts || { items: [] },
+    suppressed: payload.suppressed || { items: [] },
+    echoes: payload.echoes || payload.memory_echoes || { items: [] },
+    self: payload.self || null,
+    questions: payload.questions || { items: [] },
+    innerWorld: payload.innerWorld || payload.inner_world || { nodes: [], relations: [] },
+    dreams: payload.dreams || { items: [] },
+    hypotheses: payload.hypotheses || { items: [] },
+    contradictions: payload.contradictions || { items: [] },
+    health: payload.health || null,
+    calendar: payload.calendar || null,
+    received_at: payload.generated_at || payload.received_at || new Date().toISOString(),
+    source: payload.source || "public_snapshot",
+    schema_version: payload.schema_version || null,
+    safety: payload.safety || payload.health?.safety || payload.state?.safety || null,
+  };
+}
+
+function cacheSnapshotIfSafe(snapshot) {
+  if (publicSafetyAllowsCache(snapshot)) {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(snapshot));
+  }
+}
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
@@ -300,6 +341,16 @@ function renderShell(content, options = {}) {
 }
 
 async function loadSnapshot() {
+  const snapshotResult = await readJsonResult("/api/public-art/snapshot", null);
+  if (snapshotResult.ok && snapshotResult.data) {
+    const normalized = normalizeSnapshotPayload(snapshotResult.data);
+    if (normalized && publicSafetyAllowsCache(normalized)) {
+      cacheSnapshotIfSafe(normalized);
+      return normalized;
+    }
+    throw new Error("Public snapshot safety block is missing or unsafe");
+  }
+
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -325,15 +376,20 @@ async function loadSnapshot() {
   const [state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self, questions, innerWorld, dreams, hypotheses, contradictions, health, calendar] = results.map((r) => r.data);
   const coreAvailable = results.slice(0, 4).some((r) => r.ok);
   if (!coreAvailable) throw new Error("Public art API unavailable");
-  const snapshot = { state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self, questions, innerWorld, dreams, hypotheses, contradictions, health, calendar, received_at: new Date().toISOString(), source: "public_api" };
-  localStorage.setItem(CACHE_KEY, JSON.stringify(snapshot));
+  const snapshot = normalizeSnapshotPayload({ state, identity, latest, feed, sleep, artifacts, suppressed, echoes, self, questions, innerWorld, dreams, hypotheses, contradictions, health, calendar, received_at: new Date().toISOString(), source: "public_api", safety: health?.safety || state?.safety || null, schema_version: health?.schema_version || state?.schema_version || null });
+  if (!publicSafetyAllowsCache(snapshot)) throw new Error("Legacy public-art response safety block is missing or unsafe");
+  cacheSnapshotIfSafe(snapshot);
   return snapshot;
 }
 
 function loadCachedSnapshot() {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const snapshot = JSON.parse(raw);
+    if (publicSafetyAllowsCache(snapshot)) return snapshot;
+    localStorage.removeItem(CACHE_KEY);
+    return null;
   } catch { return null; }
 }
 
@@ -347,6 +403,11 @@ async function loadTraceDay(date) {
     const data = await readJson(`/api/public-art/traces/day?date=${date}`);
     if (data && (data.items?.length || data.date)) return { ok: true, data };
   } catch { /* fall through */ }
+  try {
+    const [year, month, day] = String(date).split("-");
+    const data = await readJson(`/api/public-art/traces/${year}/${month}/${day}`);
+    if (data && (data.items?.length || data.date)) return { ok: true, data };
+  } catch { /* fall through */ }
   const feed = normalizeItems(currentSnapshot?.feed);
   const dayItems = feed.filter(i => {
     const d = itemDate(i);
@@ -354,7 +415,6 @@ async function loadTraceDay(date) {
   });
   return { ok: false, data: { date, items: dayItems, summary: null } };
 }
-
 function parseTraceDayPath(path) {
   const m = path.match(/^\/art\/traces\/(\d{4})\/(\d{2})\/(\d{2})$/);
   if (!m) return null;
